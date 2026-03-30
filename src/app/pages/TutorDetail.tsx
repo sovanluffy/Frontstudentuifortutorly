@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from 'react-router';
 import { tutors, openClasses } from '../data/mockData';
-import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Button } from '../components/figma/ui/button';
+import { Badge } from '../components/figma/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/figma/ui/tabs';
 import { ClassCard } from '../components/ClassCard';
 import {
   Star,

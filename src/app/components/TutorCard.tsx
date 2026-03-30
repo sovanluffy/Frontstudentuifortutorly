@@ -1,7 +1,7 @@
 import { Star, CheckCircle2, Users, Calendar } from 'lucide-react';
 import { Tutor } from '../data/mockData';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
+import { Button } from './figma/ui/button';
+import { Badge } from './figma/ui/badge';
 import { useNavigate } from 'react-router';
 
 interface TutorCardProps {

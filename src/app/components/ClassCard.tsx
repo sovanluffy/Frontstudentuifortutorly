@@ -1,7 +1,7 @@
 import { Clock, Video, Home, User } from 'lucide-react';
 import { OpenClass } from '../data/mockData';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
+import { Button } from './figma/ui/button';
+import { Badge } from './figma/ui/badge';
 
 interface ClassCardProps {
   openClass: OpenClass;

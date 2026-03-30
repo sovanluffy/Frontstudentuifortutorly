@@ -1,4 +1,4 @@
-import { Button } from '../components/ui/button';
+import { Button } from '../components/figma/ui/button';
 import { useNavigate } from 'react-router';
 import { Home, Search } from 'lucide-react';
 

@@ -1,6 +1,6 @@
-import { Badge } from '../components/ui/badge';
-import { Button } from '../components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Badge } from '../components/figma/ui/badge';
+import { Button } from '../components/figma/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/figma/ui/tabs';
 import { Calendar, Clock, Video, MapPin, MessageCircle } from 'lucide-react';
 
 interface Booking {

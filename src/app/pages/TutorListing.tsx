@@ -1,19 +1,19 @@
 import { useState } from 'react';
 import { TutorCard } from '../components/TutorCard';
 import { tutors } from '../data/mockData';
-import { Button } from '../components/ui/button';
-import { Slider } from '../components/ui/slider';
-import { Label } from '../components/ui/label';
+import { Button } from '../components/figma/ui/button';
+import { Slider } from '../components/figma/ui/slider';
+import { Label } from '../components/figma/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../components/ui/select';
-import { Sheet, SheetContent, SheetTrigger } from '../components/ui/sheet';
+} from '../components/figma/ui/select';
+import { Sheet, SheetContent, SheetTrigger } from '../components/figma/ui/sheet';
 import { SlidersHorizontal } from 'lucide-react';
-import { Checkbox } from '../components/ui/checkbox';
+import { Checkbox } from '../components/figma/ui/checkbox';
 
 export function TutorListing() {
   const [budget, setBudget] = useState([50]);

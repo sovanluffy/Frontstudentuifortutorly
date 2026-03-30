@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Button } from '../components/ui/button';
-import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
+import { Button } from '../components/figma/ui/button';
+import { Label } from '../components/figma/ui/label';
+import { Textarea } from '../components/figma/ui/textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../components/ui/select';
-import { Calendar } from '../components/ui/calendar';
+} from '../components/figma/ui/select';
+import { Calendar } from '../components/figma/ui/calendar';
 import { tutors } from '../data/mockData';
 import { CheckCircle } from 'lucide-react';
 

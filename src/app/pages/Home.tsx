@@ -3,9 +3,10 @@ import { SearchBar } from '../components/SearchBar';
 import { SubjectCard } from '../components/SubjectCard';
 import { TutorCard } from '../components/TutorCard';
 import { ClassCard } from '../components/ClassCard';
+import { HeroSlider } from '../components/HeroSlider'; // Import the new slider
 import { subjects, tutors, openClasses } from '../data/mockData';
 import { ArrowRight } from 'lucide-react';
-import { Button } from '../components/ui/button';
+import { Button } from '../components/figma/ui/button';
 
 export function Home() {
   const navigate = useNavigate();
@@ -14,18 +15,13 @@ export function Home() {
   const featuredClasses = openClasses.slice(0, 3);
 
   return (
-    <div className="min-h-screen pb-20 md:pb-8">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-indigo-50 to-cyan-50 py-16 md:py-20">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center mb-8">
-            <h1 className="text-4xl md:text-5xl mb-4">
-              Find the Best Tutor Near You
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              Connect with expert tutors for personalized learning experiences
-            </p>
-          </div>
+    <div className="min-h-screen bg-[#F8FAFC] pb-20 md:pb-8">
+      {/* Cinematic Hero Section */}
+      <section className="relative">
+        <HeroSlider />
+        
+        {/* SearchBar Overlay: Positioned to sit half-way over the slider */}
+        <div className="container mx-auto px-4 -mt-12 relative z-20">
           <div className="max-w-5xl mx-auto">
             <SearchBar />
           </div>
@@ -33,17 +29,19 @@ export function Home() {
       </section>
 
       {/* Trending Subjects */}
-      <section className="py-16">
+      <section className="py-20">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-10">
             <div>
-              <h2 className="mb-2">Trending Subjects</h2>
+              <h2 className="text-3xl font-bold text-[#2D3D6A] mb-2">Trending Subjects</h2>
               <p className="text-muted-foreground">
-                Popular subjects students are learning
+                Popular subjects students are learning right now
               </p>
             </div>
+            <div className="h-1 w-20 bg-[#F57C00] hidden md:block"></div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {subjects.map((subject) => (
               <SubjectCard
                 key={subject.id}
@@ -55,32 +53,37 @@ export function Home() {
         </div>
       </section>
 
-      {/* Featured Tutors */}
-      <section className="py-16 bg-muted/30">
+      {/* Featured Tutors - Light Gray Background for Contrast */}
+      <section className="py-20 bg-slate-50 border-y border-slate-200">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-10">
             <div>
-              <h2 className="mb-2">Featured Tutors</h2>
+              <h2 className="text-3xl font-bold text-[#2D3D6A] mb-2">Featured Tutors</h2>
               <p className="text-muted-foreground">
-                Top-rated tutors ready to help you succeed
+                Top-rated experts ready to help you succeed
               </p>
             </div>
             <Button
-              variant="ghost"
+              variant="outline"
               onClick={() => navigate('/search')}
-              className="hidden md:flex items-center gap-2"
+              className="hidden md:flex items-center gap-2 border-[#1E88E5] text-[#1E88E5] hover:bg-[#1E88E5] hover:text-white transition-all"
             >
-              View All
+              View All Tutors
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {featuredTutors.map((tutor) => (
               <TutorCard key={tutor.id} tutor={tutor} />
             ))}
           </div>
-          <div className="mt-6 text-center md:hidden">
-            <Button variant="outline" onClick={() => navigate('/search')}>
+          
+          <div className="mt-10 text-center md:hidden">
+            <Button 
+              className="bg-[#1E88E5] hover:bg-[#1E88E5]/90 w-full"
+              onClick={() => navigate('/search')}
+            >
               View All Tutors
             </Button>
           </div>
@@ -88,17 +91,18 @@ export function Home() {
       </section>
 
       {/* Open Classes */}
-      <section className="py-16">
+      <section className="py-20">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-10">
             <div>
-              <h2 className="mb-2">Open Classes</h2>
+              <h2 className="text-3xl font-bold text-[#2D3D6A] mb-2">Open Classes</h2>
               <p className="text-muted-foreground">
-                Join upcoming classes with available slots
+                Join upcoming group sessions with available slots
               </p>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {featuredClasses.map((openClass) => (
               <ClassCard
                 key={openClass.id}

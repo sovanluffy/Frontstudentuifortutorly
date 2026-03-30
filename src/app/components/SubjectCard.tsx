@@ -1,18 +1,4 @@
-import { 
-  Calculator, 
-  BookOpen, 
-  Code, 
-  Award, 
-  FlaskConical, 
-  Music,
-  LucideIcon 
-} from 'lucide-react';
-import { Subject } from '../data/mockData';
-
-interface SubjectCardProps {
-  subject: Subject;
-  onClick?: () => void;
-}
+import { Calculator, BookOpen, Code, Award, FlaskConical, Music, LucideIcon } from 'lucide-react';
 
 const iconMap: Record<string, LucideIcon> = {
   calculator: Calculator,
@@ -23,24 +9,37 @@ const iconMap: Record<string, LucideIcon> = {
   music: Music,
 };
 
-export function SubjectCard({ subject, onClick }: SubjectCardProps) {
+export function SubjectCard({ subject, onClick }: { subject: any, onClick?: () => void }) {
   const Icon = iconMap[subject.icon] || BookOpen;
 
   return (
     <button
       onClick={onClick}
-      className="bg-card rounded-lg shadow-sm border border-border p-6 hover:shadow-md hover:border-primary transition-all text-left w-full"
+      className="group flex flex-col items-center gap-3 p-4 transition-all hover:-translate-y-2 w-full"
     >
-      <div className="flex flex-col items-center text-center gap-3">
-        <div className="w-16 h-16 rounded-full bg-accent flex items-center justify-center">
-          <Icon className="w-8 h-8 text-primary" />
+      {/* 1. Icon Container: Soft Shadow instead of Border */}
+      <div className="relative w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-[0_8px_30px_rgb(0,0,0,0.06)] group-hover:shadow-[0_8px_30px_rgba(30,136,229,0.2)] group-hover:scale-110 transition-all duration-300">
+        
+        {/* Main Icon: Now a deep navy/dark gray by default */}
+        <Icon className="w-7 h-7 text-[#1A1A1A] group-hover:text-[#1E88E5] transition-colors relative z-10" />
+
+        {/* 2. Orange Status Accent (TutorHub Gold) */}
+        <div className="absolute top-1 right-1 flex h-2.5 w-2.5 z-20">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F57C00] opacity-20"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#F57C00] shadow-[0_2px_10px_rgba(245,124,0,0.4)]"></span>
         </div>
-        <div>
-          <h4 className="mb-1">{subject.name}</h4>
-          <p className="text-sm text-muted-foreground">
-            {subject.tutorCount} tutors
-          </p>
-        </div>
+      </div>
+
+      <div className="text-center">
+        {/* 3. Title: Changed to High-Contrast Obsidian */}
+        <h4 className="text-sm font-black text-[#1A1A1A] group-hover:text-[#1E88E5] transition-colors leading-tight uppercase tracking-tight">
+          {subject.name}
+        </h4>
+        
+        {/* 4. Subtitle: Darker gray for legibility on white */}
+        <p className="text-[10px] text-[#666666] font-bold uppercase tracking-widest mt-1">
+          <span className="text-[#F57C00]">{subject.tutorCount} Tutors</span> Available
+        </p>
       </div>
     </button>
   );

@@ -1,13 +1,13 @@
 import { Search } from 'lucide-react';
-import { Input } from './ui/input';
-import { Button } from './ui/button';
+import { Input } from './figma/ui/input';
+import { Button } from './figma/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from './ui/select';
+} from './figma/ui/select';
 import { subjects } from '../data/mockData';
 
 interface SearchBarProps {

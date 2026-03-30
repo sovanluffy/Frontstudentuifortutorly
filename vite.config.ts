@@ -1,22 +1,22 @@
 import { defineConfig } from 'vite'
+import { fileURLToPath } from 'url' // New: Standard for modern Vite
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
+// Convert the current file URL to a directory path
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
 export default defineConfig({
   plugins: [
-    // The React and Tailwind plugins are both required for Make, even if
-    // Tailwind is not being actively used – do not remove them
     react(),
     tailwindcss(),
   ],
   resolve: {
     alias: {
-      // Alias @ to the src directory
+      // Now @ will correctly point to your src folder
       '@': path.resolve(__dirname, './src'),
     },
   },
-
-  // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 })
