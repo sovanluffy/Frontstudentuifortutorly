@@ -1,71 +1,109 @@
-import { Star, CheckCircle2, Users, Calendar } from 'lucide-react';
-import { Tutor } from '../data/mockData';
-import { Button } from './figma/ui/button';
-import { Badge } from './figma/ui/badge';
-import { useNavigate } from 'react-router';
+import * as React from "react";
+import { 
+  Star, 
+  MapPin, 
+  ShieldCheck, 
+  ArrowUpRight, 
+  Users, 
+  Clock 
+} from "lucide-react";
+import { useNavigate } from "react-router";
+import { Tutor } from "../data/mockData";
+import { cn } from "@/lib/utils";
 
 interface TutorCardProps {
   tutor: Tutor;
-  onFavoriteToggle?: (tutorId: string) => void;
-  isFavorited?: boolean;
 }
 
-export function TutorCard({ tutor, onFavoriteToggle, isFavorited }: TutorCardProps) {
+export function TutorCard({ tutor }: TutorCardProps) {
   const navigate = useNavigate();
 
   return (
-    <div className="bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow border border-border overflow-hidden">
-      <div className="p-6">
-        <div className="flex items-start gap-4">
+    <div 
+      onClick={() => navigate(`/tutor/${tutor.tutorId}`)}
+      className="group cursor-pointer flex flex-col"
+    >
+      {/* MAIN CONTAINER: Matching HeroSliderSmall's 420px-440px height */}
+      <div className="relative h-[440px] bg-white rounded-[2.5rem] p-3 border border-slate-100 hover:border-indigo-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.08)] transition-all duration-500 ease-out flex flex-col">
+        
+        {/* VISUAL HEADER: The Image Container */}
+        <div className="relative h-48 w-full overflow-hidden rounded-[2rem] bg-slate-100">
           <img
-            src={tutor.photo}
-            alt={tutor.name}
-            className="w-20 h-20 rounded-full object-cover"
+            src={tutor.profilePicture}
+            alt={tutor.fullname}
+            className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000"
+            loading="lazy"
           />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="truncate">{tutor.name}</h3>
-              {tutor.verified && (
-                <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-              )}
+          {/* Dark overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-40 group-hover:opacity-60 transition-opacity" />
+          
+          {/* TOP RIGHT ICON: Verified Badge */}
+          {tutor.verified && (
+            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-2 rounded-2xl shadow-sm">
+              <ShieldCheck size={18} className="text-blue-600" />
             </div>
-            <div className="flex items-center gap-1 mb-2">
-              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              <span className="text-sm">{tutor.rating}</span>
-              <span className="text-sm text-muted-foreground">
-                ({tutor.studentsCount} students)
+          )}
+
+          {/* BOTTOM LEFT: Rating Float */}
+          <div className="absolute bottom-4 left-4 flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10">
+            <Star size={12} className="text-amber-400 fill-amber-400" />
+            <span className="text-[11px] font-black text-white">{tutor.rating}</span>
+          </div>
+        </div>
+
+        {/* BODY CONTENT: Padding and typography matching the slider */}
+        <div className="flex-1 px-4 pt-6 pb-2">
+          {/* Subject Tag with decorative line */}
+          <div className="flex items-center gap-2 mb-3">
+            <span className="h-px w-4 bg-indigo-600/40" />
+            <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">
+              {tutor.subjects[0]} {tutor.subjects[1] && `& ${tutor.subjects[1]}`}
+            </span>
+          </div>
+          
+          {/* Name & Experience Subtitle */}
+          <h3 className="text-xl font-bold text-slate-900 mb-0.5 tracking-tight group-hover:text-indigo-600 transition-colors">
+            {tutor.fullname}
+          </h3>
+          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-tight mb-3">
+            {tutor.experience} Years Experience
+          </p>
+
+          {/* Bio text with line-clamping */}
+          <p className="text-[13.5px] text-slate-500 leading-relaxed line-clamp-3">
+            {tutor.bio || "Dedicated tutor focused on personalized student growth and academic excellence."}
+          </p>
+
+          {/* Metadata: Location and Student Count */}
+          <div className="flex items-center gap-4 mt-4">
+            <div className="flex items-center gap-1">
+              <MapPin size={12} className="text-slate-400" />
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+                {tutor.location.split(',')[0]}
               </span>
             </div>
-            <div className="flex flex-wrap gap-1 mb-3">
-              {tutor.subjects.slice(0, 3).map((subject) => (
-                <Badge key={subject} variant="secondary" className="text-xs">
-                  {subject}
-                </Badge>
-              ))}
+            <div className="flex items-center gap-1">
+              <Users size={12} className="text-slate-400" />
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+                {tutor.studentsTaught} Students
+              </span>
             </div>
           </div>
         </div>
 
-        <div className="mt-4 space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Users className="w-4 h-4" />
-              <span>{tutor.experience} years exp</span>
+        {/* FOOTER ACTION BAR: Interactive button area */}
+        <div className="px-2 pb-2">
+          <div className="w-full flex items-center justify-between py-3 px-5 rounded-2xl bg-slate-50 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
+            <div className="flex items-baseline gap-1">
+              <span className="text-xs font-bold uppercase tracking-wide">
+                Book for ${tutor.startingPrice || 0}
+              </span>
+              <span className="text-[10px] opacity-70">/hr</span>
             </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              <span>{tutor.availability.split(':')[0]}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between pt-3 border-t border-border">
-            <div>
-              <span className="text-2xl text-primary">${tutor.pricePerHour}</span>
-              <span className="text-sm text-muted-foreground">/hour</span>
-            </div>
-            <Button onClick={() => navigate(`/tutor/${tutor.id}`)}>
-              View Profile
-            </Button>
+            <ArrowUpRight 
+              size={14} 
+              className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" 
+            />
           </div>
         </div>
       </div>

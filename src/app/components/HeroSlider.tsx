@@ -6,6 +6,8 @@ import {
   CarouselItem,
   type CarouselApi 
 } from "../components/figma/ui/carousel";
+import { cn } from "@/lib/utils"; 
+import { ChevronLeft, ChevronRight, Play } from "lucide-react";
 
 const slides = [
   {
@@ -13,14 +15,21 @@ const slides = [
     title: "រីករាយជាមួយតម្លៃពិសេស",
     subtitle: "Exclusive Student Membership",
     image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1000",
-    color: "rgba(225, 29, 72, 0.15)", // Red Glow
+    color: "rgba(59, 130, 246, 0.15)", 
   },
   {
     id: 2,
     title: "រៀនជាមួយគ្រូឆ្នើម",
     subtitle: "Learn with Top-Rated Mentors",
     image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=1000",
-    color: "rgba(30, 136, 229, 0.15)", // Blue Glow
+    color: "rgba(16, 185, 129, 0.15)", 
+  },
+  {
+    id: 3,
+    title: "បច្ចេកវិទ្យាថ្មីៗ",
+    subtitle: "Master Modern Technology",
+    image: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1000",
+    color: "rgba(245, 124, 0, 0.15)", 
   }
 ];
 
@@ -28,102 +37,157 @@ export function HeroSlider() {
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
 
+  // Clean Autoplay Config: 5 seconds delay, smooth transition
   const plugin = React.useRef(
-    Autoplay({ delay: 5000, stopOnInteraction: false })
+    Autoplay({ 
+      delay: 5000, 
+      stopOnInteraction: false,
+      stopOnMouseEnter: true 
+    })
   );
 
-  // Sync the background blur with the current slide
   React.useEffect(() => {
     if (!api) return;
-    api.on("select", () => {
-      setCurrent(api.selectedScrollSnap());
-    });
+    const onSelect = () => setCurrent(api.selectedScrollSnap());
+    api.on("select", onSelect);
+    return () => { api.off("select", onSelect); };
   }, [api]);
 
   return (
-    <section className="w-full min-h-[600px] bg-[#050505] py-8 overflow-hidden relative flex flex-col justify-center">
+    <section className="relative w-full min-h-[65vh] sm:min-h-[85vh] flex flex-col justify-center py-5 lg:py-5 overflow-hidden bg-[#fafafa]">
       
-      {/* --- THE BACKGROUND BLUR LAYER --- */}
-      <div className="absolute inset-0 z-0">
-        {/* Dynamic Blurred Image */}
+      {/* --- SOFT AMBIENT GLOW --- */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
         <div 
-          className="absolute inset-0 opacity-40 transition-all duration-1000 scale-110 blur-[80px]"
+          className="absolute inset-0 opacity-10 transition-opacity duration-1000 blur-[100px]"
           style={{ 
-            backgroundImage: `url(${slides[current].image})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
+            backgroundImage: `radial-gradient(circle at center, ${slides[current].color}, transparent)`,
           }}
-        />
-        {/* Dark Tint Overlay to keep it premium and not too bright */}
-        <div className="absolute inset-0 bg-[#050505]/80 backdrop-blur-3xl" />
-        
-        {/* Subtle Color Spot Glow */}
-        <div 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full transition-colors duration-1000 opacity-30 blur-[120px]"
-          style={{ backgroundColor: slides[current].color }}
         />
       </div>
 
-      <div className="container mx-auto px-4 max-w-6xl relative z-10">
+      <div className="relative z-10 w-full">
         <Carousel
           setApi={setApi}
           plugins={[plugin.current]}
+          opts={{ 
+            align: "center", 
+            loop: true,
+            duration: 50 // Makes the manual swipe feel "lighter" and cleaner
+          }}
           className="w-full"
         >
-          <CarouselContent>
-            {slides.map((slide) => (
-              <CarouselItem key={slide.id}>
-                <div className="relative aspect-[4/5] sm:aspect-[21/9] overflow-hidden rounded-[2.5rem] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] group">
-                  
-                  {/* Main Slide Image */}
-                  <img 
-                    src={slide.image} 
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" 
-                    alt="" 
-                  />
-
-                  {/* Glass Content Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-                  
-                  <div className="absolute inset-0 p-8 sm:p-16 flex flex-col justify-end sm:justify-center">
-                    {/* Brand Tag */}
-                    <div className="flex items-center gap-3 mb-4 bg-black/40 backdrop-blur-xl w-fit px-4 py-1.5 rounded-full border border-white/10">
-                      <div className="h-1.5 w-1.5 rounded-full bg-[#F57C00] shadow-[0_0_8px_#F57C00]"></div>
-                      <p className="text-[10px] text-white font-black uppercase tracking-[0.2em]">
-                        TutorHub Academy
-                      </p>
-                    </div>
+          <CarouselContent className="-ml-4 sm:-ml-8 md:-ml-12 items-center">
+            {slides.map((slide, index) => {
+              const isActive = current === index;
+              return (
+                <CarouselItem 
+                  key={slide.id} 
+                  className="pl-4 sm:pl-8 md:pl-12 basis-[92%] sm:basis-[85%] md:basis-[80%] lg:basis-[70%] xl:basis-[60%] 2xl:basis-[55%]"
+                >
+                  <div 
+                    className={cn(
+                      "relative overflow-hidden transition-all duration-[1200ms] cubic-bezier(0.23, 1, 0.32, 1)",
+                      "aspect-[0.9/1] sm:aspect-[1.5/1] md:aspect-[16/8] lg:aspect-[21/9]",
+                      "rounded-[2rem] sm:rounded-[3rem] lg:rounded-[4rem]",
+                      "border border-black/[0.03] shadow-[0_32px_64px_-15px_rgba(0,0,0,0.1)]",
+                      isActive ? "scale-100 opacity-100" : "scale-[0.92] opacity-30 blur-[2px]"
+                    )}
+                  >
+                    <img 
+                      src={slide.image} 
+                      className={cn(
+                        "absolute inset-0 w-full h-full object-cover transition-transform duration-[8000ms] ease-out",
+                        isActive ? "scale-100" : "scale-110"
+                      )}
+                      alt={slide.title} 
+                    />
                     
-                    <h2 className="text-3xl sm:text-6xl font-black text-white leading-tight uppercase tracking-tighter drop-shadow-2xl mb-3">
-                      {slide.title}
-                    </h2>
-                    
-                    <p className="text-xs sm:text-lg font-medium text-white/70 uppercase tracking-widest mb-8">
-                      {slide.subtitle}
-                    </p>
+                    {/* Clean Minimalist Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent lg:from-white lg:via-white/20 lg:to-transparent" />
 
-                    <div className="flex items-center gap-4">
-                      <button className="bg-[#E11D48] text-white text-[11px] font-black px-8 py-4 rounded-full uppercase tracking-tighter shadow-xl hover:brightness-110 active:scale-95 transition-all">
-                        Join Now
-                      </button>
-                      <button className="bg-white/10 backdrop-blur-2xl border border-white/20 text-white text-[11px] font-black px-8 py-4 rounded-full uppercase tracking-tighter hover:bg-white/20 active:scale-95 transition-all">
-                        Details
-                      </button>
+                    <div className={cn(
+                      "absolute inset-0 p-8 sm:p-14 lg:p-20 flex flex-col justify-end transition-all duration-1000 delay-300",
+                      isActive ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+                    )}>
+                      
+                      <div className="mb-4">
+                        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 lg:bg-slate-900/5 backdrop-blur-md text-[10px] md:text-xs text-white lg:text-slate-900 font-bold uppercase tracking-[0.2em]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                          Exclusive
+                        </span>
+                      </div>
+
+                      <h2 className={cn(
+                        "font-black leading-[1.1] mb-6 md:mb-10 max-w-4xl tracking-tight",
+                        "text-3xl sm:text-4xl md:text-5xl lg:text-7xl xl:text-[84px]",
+                        "text-white lg:text-slate-950"
+                      )}>
+                        {slide.title}
+                      </h2>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+                        <button className="h-14 md:h-16 px-10 bg-blue-600 lg:bg-slate-950 text-white rounded-2xl flex items-center justify-center gap-3 hover:shadow-2xl hover:-translate-y-0.5 transition-all active:scale-95">
+                          <span className="text-xs font-bold uppercase tracking-widest">Get Started</span>
+                          <Play size={14} fill="currentColor" />
+                        </button>
+                        
+                        <p className="text-[11px] md:text-sm font-medium text-white/70 lg:text-slate-400 uppercase tracking-[0.25em] max-w-xs leading-relaxed">
+                          {slide.subtitle}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CarouselItem>
-            ))}
+                </CarouselItem>
+              );
+            })}
           </CarouselContent>
+
+          {/* Minimalist Nav Controls */}
+          <div className="hidden lg:flex absolute top-1/2 -translate-y-1/2 w-full justify-between px-12 pointer-events-none">
+             <NavButton onClick={() => api?.scrollPrev()} icon={<ChevronLeft size={28} className="text-slate-400 group-hover:text-slate-950" />} />
+             <NavButton onClick={() => api?.scrollNext()} icon={<ChevronRight size={28} className="text-slate-400 group-hover:text-slate-950" />} />
+          </div>
         </Carousel>
 
-        {/* Cinematic Toggle Buttons */}
-        <div className="flex justify-center mt-12">
-          <div className="bg-white/5 backdrop-blur-2xl rounded-full p-1.5 flex w-full max-w-[340px] border border-white/10 shadow-2xl">
-          
-          </div>
+        {/* Cinematic Progress Bar (Clean alternative to dots) */}
+        <div className="flex justify-center items-center gap-4 mt-12 md:mt-16">
+          {slides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => api?.scrollTo(index)}
+              className="relative h-1 w-12 md:w-20 bg-slate-200 rounded-full overflow-hidden"
+            >
+              {current === index && (
+                <div 
+                  className="absolute inset-0 bg-slate-950 origin-left"
+                  style={{ 
+                    animation: 'progress 5000ms linear forwards' 
+                  }}
+                />
+              )}
+            </button>
+          ))}
         </div>
       </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes progress {
+          from { transform: scaleX(0); }
+          to { transform: scaleX(1); }
+        }
+      `}} />
     </section>
+  );
+}
+
+function NavButton({ onClick, icon }: { onClick: () => void; icon: React.ReactNode }) {
+  return (
+    <button 
+      onClick={onClick}
+      className="group h-14 w-14 rounded-full bg-white/40 backdrop-blur-xl border border-white/50 flex items-center justify-center pointer-events-auto hover:bg-white hover:scale-110 transition-all duration-500 shadow-sm"
+    >
+      {icon}
+    </button>
   );
 }

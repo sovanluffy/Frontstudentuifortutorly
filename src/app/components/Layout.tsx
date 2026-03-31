@@ -1,15 +1,22 @@
-import { Outlet } from 'react-router';
-import  Header  from './Header';
-import { MobileNav } from './MobileNav';
+import { Outlet } from "react-router";
+import  Header  from "./Header";
+import { MobileNav } from "./MobileNav";
 
 export function Layout() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="w-full min-h-screen bg-white overflow-x-hidden">
+
+      {/* Header */}
       <Header />
-      <main className="flex-1">
+
+      {/* Main Content */}
+      <main className="w-full">
         <Outlet />
       </main>
+
+      {/* Mobile Bottom Nav */}
       <MobileNav />
+
     </div>
   );
 }

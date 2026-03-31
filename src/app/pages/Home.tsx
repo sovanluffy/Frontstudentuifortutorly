@@ -1,118 +1,86 @@
-import { useNavigate } from 'react-router';
-import { SearchBar } from '../components/SearchBar';
-import { SubjectCard } from '../components/SubjectCard';
-import { TutorCard } from '../components/TutorCard';
-import { ClassCard } from '../components/ClassCard';
-import { HeroSlider } from '../components/HeroSlider'; // Import the new slider
-import { subjects, tutors, openClasses } from '../data/mockData';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { HeroSlider } from '../components/HeroSlider';
+import { TutorListingCard } from '../components/TutorListingCard';
+import { IntegratedSearchBar } from '../components/IntegratedSearchBar';
+import { tutors } from '../data/mockData';
 import { ArrowRight } from 'lucide-react';
-import { Button } from '../components/figma/ui/button';
 
 export function Home() {
   const navigate = useNavigate();
+  const [selectedSubject, setSelectedSubject] = useState("All Subjects");
 
-  const featuredTutors = tutors.slice(0, 3);
-  const featuredClasses = openClasses.slice(0, 3);
+  const displayTutors =
+    selectedSubject === "All Subjects"
+      ? tutors.slice(0, 12)
+      : tutors.filter(t => t.subjects.includes(selectedSubject)).slice(0, 12);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-20 md:pb-8">
-      {/* Cinematic Hero Section */}
-      <section className="relative">
+    <div className="min-h-screen bg-white selection:bg-indigo-100">
+
+      {/* HERO */}
+      <section className="relative pt-4 bg-slate-50/30 ">
         <HeroSlider />
-        
-        {/* SearchBar Overlay: Positioned to sit half-way over the slider */}
-        <div className="container mx-auto px-4 -mt-12 relative z-20">
-          <div className="max-w-5xl mx-auto">
-            <SearchBar />
-          </div>
-        </div>
       </section>
 
-      {/* Trending Subjects */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-10">
-            <div>
-              <h2 className="text-3xl font-bold text-[#2D3D6A] mb-2">Trending Subjects</h2>
-              <p className="text-muted-foreground">
-                Popular subjects students are learning right now
-              </p>
+      {/* MAIN */}
+      <section className="py-12 px-6">
+        <div className="grid grid-cols-10 gap-8 w-full">
+
+          {/* FILTER — 30% */}
+          <div className="col-span-3">
+            <div className="sticky top-24">
+              <IntegratedSearchBar
+                selectedSubject={selectedSubject}
+                onSubjectSelect={setSelectedSubject}
+              />
             </div>
-            <div className="h-1 w-20 bg-[#F57C00] hidden md:block"></div>
           </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-            {subjects.map((subject) => (
-              <SubjectCard
-                key={subject.id}
-                subject={subject}
+
+          {/* CARDS — 70% */}
+          <div className="col-span-7">
+
+            {/* HEADER */}
+            <div className="flex items-center justify-between mb-12">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-8 bg-indigo-600 rounded-full" />
+                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">
+                  {selectedSubject === "All Subjects"
+                    ? "Now Trending"
+                    : `${selectedSubject} Experts`}
+                </h3>
+              </div>
+
+              <button
                 onClick={() => navigate('/search')}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Tutors - Light Gray Background for Contrast */}
-      <section className="py-20 bg-slate-50 border-y border-slate-200">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-10">
-            <div>
-              <h2 className="text-3xl font-bold text-[#2D3D6A] mb-2">Featured Tutors</h2>
-              <p className="text-muted-foreground">
-                Top-rated experts ready to help you succeed
-              </p>
+                className="text-indigo-600 font-black text-xs uppercase tracking-widest flex items-center gap-2"
+              >
+                See all <ArrowRight size={14} strokeWidth={3} />
+              </button>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => navigate('/search')}
-              className="hidden md:flex items-center gap-2 border-[#1E88E5] text-[#1E88E5] hover:bg-[#1E88E5] hover:text-white transition-all"
-            >
-              View All Tutors
-              <ArrowRight className="w-4 h-4" />
-            </Button>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredTutors.map((tutor) => (
-              <TutorCard key={tutor.id} tutor={tutor} />
-            ))}
-          </div>
-          
-          <div className="mt-10 text-center md:hidden">
-            <Button 
-              className="bg-[#1E88E5] hover:bg-[#1E88E5]/90 w-full"
-              onClick={() => navigate('/search')}
-            >
-              View All Tutors
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Open Classes */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-10">
-            <div>
-              <h2 className="text-3xl font-bold text-[#2D3D6A] mb-2">Open Classes</h2>
-              <p className="text-muted-foreground">
-                Join upcoming group sessions with available slots
-              </p>
+            {/* CARD GRID */}
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8">
+              {displayTutors.map((tutor) => (
+                <TutorListingCard key={tutor.tutorId} tutor={tutor} />
+              ))}
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredClasses.map((openClass) => (
-              <ClassCard
-                key={openClass.id}
-                openClass={openClass}
-                onBookClick={() => navigate('/booking')}
-              />
-            ))}
           </div>
         </div>
       </section>
+
+      {/* FOOTER */}
+      <footer className="py-20 border-t border-slate-100 bg-slate-50/50">
+        <div className="text-center">
+          <h3 className="text-3xl font-black text-slate-900 uppercase italic">
+            TutorHub.
+          </h3>
+          <p className="text-slate-300 text-[9px] font-bold uppercase tracking-[0.5em] mt-8">
+            © 2026 TutorHub Cambodia • All Rights Reserved
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
