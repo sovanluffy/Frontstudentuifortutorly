@@ -1,4 +1,4 @@
-import { TutorListingCard } from './TutorListingCard';
+import { TutorListingCard } from './listTutor/TutorListingCard';
 import { tutors } from '../data/mockData';
 
 export default function TutorExplorer() {

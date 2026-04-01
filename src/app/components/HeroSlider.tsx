@@ -3,25 +3,58 @@ import Autoplay from "embla-carousel-autoplay";
 import { 
   Carousel, 
   CarouselContent, 
-  CarouselItem,
+  CarouselItem, 
   type CarouselApi 
 } from "../components/figma/ui/carousel";
 import { cn } from "@/lib/utils"; 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, GraduationCap, Zap, Star } from "lucide-react";
 
 const slides = [
-  { id: 1, image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1200", title: "Social Learning" },
-  { id: 2, image: "https://images.unsplash.com/photo-1622979135225-d2ba269cf1ac?q=80&w=1200", title: "Meta Quest VR" },
-  { id: 3, image: "https://images.unsplash.com/photo-1516251193007-45ef944ab0c6?q=80&w=1200", title: "WhatsApp Integration" },
-  { id: 4, image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=1200", title: "Collaboration" },
+  {
+    id: 1,
+    title: "រៀនជាមួយគ្រូឆ្នើម",
+    image: "https://illustrations.popsy.co/amber/student-going-to-school.svg", 
+    bgColor: "bg-blue-50/80",
+    accent: "bg-blue-500",
+    icon: <GraduationCap size={12} />
+  },
+  {
+    id: 2,
+    title: "ពង្រឹងសមត្ថភាព",
+    image: "https://illustrations.popsy.co/amber/digital-nomad.svg",
+    bgColor: "bg-orange-50/80",
+    accent: "bg-orange-500",
+    icon: <Zap size={12} />
+  },
+  {
+    id: 3,
+    title: "សម្រេចគោលដៅ",
+    image: "https://illustrations.popsy.co/amber/creative-work.svg",
+    bgColor: "bg-purple-50/80",
+    accent: "bg-purple-500",
+    icon: <Star size={12} />
+  },
+  {
+    id: 4,
+    title: "បច្ចេកវិទ្យាថ្មី",
+    image: "https://illustrations.popsy.co/amber/keynote-presentation.svg",
+    bgColor: "bg-emerald-50/80",
+    accent: "bg-emerald-500",
+    icon: <Zap size={12} />
+  }
 ];
 
 export function HeroSlider() {
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
 
+  // Auto-run configuration: 3 seconds per slide, doesn't stop on click
   const plugin = React.useRef(
-    Autoplay({ delay: 4000, stopOnInteraction: false })
+    Autoplay({ 
+      delay: 3000, 
+      stopOnInteraction: false, 
+      stopOnMouseEnter: false 
+    })
   );
 
   React.useEffect(() => {
@@ -30,70 +63,88 @@ export function HeroSlider() {
   }, [api]);
 
   return (
-    <section className="w-full bg-white py-12 overflow-hidden">
-      <div className="relative w-full">
-        <Carousel
-          setApi={setApi}
-          plugins={[plugin.current]}
-          opts={{ 
-            align: "center", // This keeps the active item in the middle
-            loop: true, 
-            duration: 30 
-          }}
+    <section className="w-full py-4 select-none">
+      <div className="max-w-[1440px] mx-auto px-6">
+        
+        <Carousel 
+          setApi={setApi} 
+          plugins={[plugin.current]} 
+          opts={{ align: "start", loop: true }} 
           className="w-full"
         >
-          <CarouselContent className="-ml-4 flex items-center">
-            {slides.map((slide, index) => {
-              const isActive = current === index;
-              return (
-                <CarouselItem 
-                  key={slide.id} 
-                  // This "basis" creates the effect of seeing the next/prev slides on the edges
-                  className="pl-4 basis-[75%] sm:basis-[55%] md:basis-[45%] lg:basis-[35%]"
-                >
-                  <div className={cn(
-                    "relative transition-all duration-700 ease-in-out overflow-hidden rounded-[2.5rem]",
-                    // Active slide is taller and fully opaque
-                    // Inactive slides are shorter (scale-90) and faded
-                    isActive 
-                      ? "aspect-[4/5] scale-100 opacity-100 shadow-2xl" 
-                      : "aspect-[4/5] scale-[0.85] opacity-40 blur-[1px]"
-                  )}>
+          <CarouselContent className="-ml-3">
+            {slides.map((slide) => (
+              <CarouselItem key={slide.id} className="pl-3 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
+                
+                {/* COMPACT CARD */}
+                <div className={cn(
+                  "group relative aspect-[0.95/1] overflow-hidden rounded-[2rem] border border-slate-100/50 shadow-sm transition-all duration-500 hover:shadow-xl hover:-translate-y-1",
+                  slide.bgColor
+                )}>
+                  
+                  {/* Static Badge */}
+                  <div className="absolute top-4 left-4 z-10">
+                    <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm", slide.accent)}>
+                      {slide.icon}
+                    </div>
+                  </div>
+
+                  {/* 3D Character (Floating Animation) */}
+                  <div className="absolute inset-0 flex items-center justify-center p-8 pb-16">
                     <img 
                       src={slide.image} 
-                      className="absolute inset-0 w-full h-full object-cover"
-                      alt={slide.title} 
+                      alt={slide.title}
+                      className="w-full h-full object-contain animate-float"
                     />
                   </div>
-                </CarouselItem>
-              );
-            })}
-          </CarouselContent>
 
-          {/* Controls positioned relative to the center card */}
-          <div className="absolute top-1/2 -translate-y-1/2 w-full flex justify-between px-4 sm:px-[15%] pointer-events-none">
-            <button 
-              onClick={() => api?.scrollPrev()}
-              className="h-10 w-10 rounded-full bg-white shadow-lg flex items-center justify-center pointer-events-auto hover:bg-slate-50 transition-all border"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button 
-              onClick={() => api?.scrollNext()}
-              className="h-10 w-10 rounded-full bg-white shadow-lg flex items-center justify-center pointer-events-auto hover:bg-slate-50 transition-all border"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
+                  {/* Always-Visible Auto Title */}
+                  <div className="absolute inset-x-3 bottom-3">
+                    <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3 flex items-center justify-between border border-white shadow-sm transition-all group-hover:bg-white">
+                      <div className="flex flex-col min-w-0">
+                        <h3 className="text-[11px] font-black text-slate-900 truncate tracking-tight">
+                          {slide.title}
+                        </h3>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                          Expert Tutor
+                        </span>
+                      </div>
+                      <div className="shrink-0 w-7 h-7 rounded-lg bg-slate-950 text-white flex items-center justify-center group-hover:bg-orange-500 transition-colors">
+                        <ArrowRight size={12} />
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
         </Carousel>
 
-        {/* Text Caption below the center slide */}
-        <div className="mt-8 text-center">
-          <p className="text-slate-600 font-medium text-sm lg:text-base">
-            {slides[current].title}
-          </p>
+        {/* Dynamic Progress Indicator */}
+        <div className="mt-6 flex gap-1.5 justify-center items-center">
+          {slides.map((_, i) => (
+            <div 
+              key={i}
+              className={cn(
+                "h-1 rounded-full transition-all duration-700",
+                current === i ? "w-6 bg-slate-900" : "w-1.5 bg-slate-200"
+              )} 
+            />
+          ))}
         </div>
       </div>
+
+      {/* Global CSS for 3D Floating Effect */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-8px) rotate(1deg); }
+        }
+        .animate-float {
+          animation: float 4s ease-in-out infinite;
+        }
+      `}} />
     </section>
   );
 }

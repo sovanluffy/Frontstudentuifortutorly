@@ -1,169 +1,128 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { HeroSlider } from '../components/HeroSlider';
-import { TutorListingCard } from '../components/TutorListingCard';
-import { IntegratedSearchBar } from '../components/IntegratedSearchBar';
-import { tutors } from '../data/mockData';
-import { ArrowRight, Filter, LayoutGrid, Sparkles, Zap } from 'lucide-react';
+import { useState, useMemo } from "react";
+import { HeroSlider } from "../components/HeroSlider";
+import { TutorListingCard } from "../components/listTutor/TutorListingCard";
+import { IntegratedSearchBar } from "../components/IntegratedSearchBar"; 
+import { ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { useTutors } from "@/hooks/useTutors";
 
 export function Home() {
-  const navigate = useNavigate();
-  const [selectedSubject, setSelectedSubject] = useState("All Subjects");
+  const { tutors, loading, error } = useTutors();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [activeFilters, setActiveFilters] = useState({
+    search: "",
+    location: "",
+    maxPrice: 200,
+    subject: "All Subjects",
+    schedule: "Any"
+  });
 
-  // Optimized filtering with useMemo
+  // --- FILTER LOGIC ---
   const displayTutors = useMemo(() => {
-    const filtered = selectedSubject === "All Subjects"
-      ? tutors
-      : tutors.filter(t => t.subjects.includes(selectedSubject));
-    return filtered.slice(0, 16);
-  }, [selectedSubject]);
+    return (tutors || []).filter(t => {
+      const tutorSubjects = t?.subjects || [];
+      const matchesSubject = activeFilters.subject === "All Subjects" || tutorSubjects.includes(activeFilters.subject);
+      const tutorName = t?.fullname || "";
+      const matchesSearch = tutorName.toLowerCase().includes(activeFilters.search.toLowerCase()) || 
+                           tutorSubjects.some(s => s?.toLowerCase().includes(activeFilters.search.toLowerCase()));
+      const matchesLocation = !activeFilters.location || t?.location?.toLowerCase().includes(activeFilters.location.toLowerCase());
+
+      return matchesSubject && matchesSearch && matchesLocation;
+    });
+  }, [tutors, activeFilters]);
+
+  // --- PAGINATION ---
+  const tutorsPerPage = 8;
+  const totalPages = Math.ceil(displayTutors.length / tutorsPerPage);
+  const currentTutors = displayTutors.slice((currentPage - 1) * tutorsPerPage, currentPage * tutorsPerPage);
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] selection:bg-indigo-100">
-      
-      {/* 1. HERO SECTION */}
-      <section className="bg-white border-b border-slate-200/60">
-        <HeroSlider />
-      </section>
+    <div className="min-h-screen bg-[#fcfcfd] font-sans text-[#0f172a]">
+      <HeroSlider />
 
-      {/* 2. MAIN LAYOUT */}
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-16">
-        <div className="flex flex-col lg:flex-row gap-8 xl:gap-12">
-          
-          {/* LEFT COLUMN: FILTER PANEL */}
-          <aside className="w-full lg:w-[340px] flex-shrink-0">
-            <div className="lg:sticky lg:top-28 space-y-6">
-              
-              {/* Filter Header */}
-              <div className="flex items-center justify-between px-2">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
-                    <Filter size={18} />
-                  </div>
-                  <h2 className="text-xs font-black uppercase tracking-[0.25em] text-slate-500">
-                    Fine-tune Search
-                  </h2>
-                </div>
-                {selectedSubject !== "All Subjects" && (
-                  <button 
-                    onClick={() => setSelectedSubject("All Subjects")}
-                    className="text-[10px] font-bold uppercase tracking-tighter text-indigo-600 hover:text-indigo-700 transition-colors"
-                  >
-                    Reset
-                  </button>
-                )}
-              </div>
-              
-              {/* Search Card */}
-              <div className="bg-white/70 backdrop-blur-xl p-7 rounded-[2rem] border border-white shadow-xl shadow-slate-200/50">
-                <IntegratedSearchBar
-                  selectedSubject={selectedSubject}
-                  onSubjectSelect={setSelectedSubject}
-                />
-              </div>
-
-              {/* Recruitment Promo Card */}
-              <div className="group relative overflow-hidden bg-slate-900 rounded-[2.5rem] p-8 text-white transition-all hover:shadow-2xl hover:shadow-indigo-200/50">
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Zap size={16} className="text-yellow-400 fill-yellow-400" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Opportunities</span>
-                  </div>
-                  <h4 className="font-extrabold text-xl leading-tight group-hover:text-indigo-300 transition-colors">
-                    Teach with <br />TutorHub.
-                  </h4>
-                  <p className="text-slate-400 text-sm mt-3 leading-relaxed">
-                    Access Cambodia's largest student network and set your own rates.
-                  </p>
-                  <button className="mt-6 w-full flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest bg-white text-slate-900 px-6 py-4 rounded-2xl hover:bg-indigo-500 hover:text-white transition-all">
-                    Apply Now <ArrowRight size={14} />
-                  </button>
-                </div>
-                {/* Decorative Gradient */}
-                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-indigo-600/20 rounded-full blur-3xl group-hover:bg-indigo-600/40 transition-all" />
-              </div>
+      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12">
+          <div className="shrink-0">
+            <h2 className="text-4xl font-black tracking-tighter leading-none">
+              Find Your <br />
+              <span className="text-orange-500">Perfect Tutor</span>
+            </h2>
+            <div className="flex items-center gap-2 mt-3">
+              <span className="w-8 h-1 bg-orange-500 rounded-full"></span>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
+                {displayTutors.length} Experts Available
+              </p>
             </div>
-          </aside>
+          </div>
 
-          {/* RIGHT COLUMN: CONTENT FEED */}
-          <div className="flex-grow">
-            
-            {/* Dynamic Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                   <Sparkles size={16} className="text-indigo-500" />
-                   <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Selected for you</span>
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight uppercase italic leading-none">
-                  {selectedSubject === "All Subjects" ? "Elite Recommendations" : `${selectedSubject} Masters`}
-                </h3>
-              </div>
+          <div className="w-full lg:max-w-4xl">
+            <IntegratedSearchBar 
+              onFiltersChange={(newFilters) => {
+                setActiveFilters(newFilters);
+                setCurrentPage(1); 
+              }} 
+            />
+          </div>
+        </div>
 
-              <div className="flex items-center gap-4">
-                <div className="text-right hidden sm:block">
-                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Availability</p>
-                  <p className="text-slate-900 font-bold text-sm">{displayTutors.length} Active Profiles</p>
-                </div>
-                <button
-                  onClick={() => navigate('/search')}
-                  className="group flex items-center gap-3 bg-slate-900 text-white hover:bg-indigo-600 transition-all px-7 py-4 rounded-2xl shadow-lg shadow-slate-200 text-xs font-bold uppercase tracking-widest"
-                >
-                  View All Directory <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-              </div>
-            </div>
-
-            {/* CARD GRID */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 lg:gap-8">
-              {displayTutors.map((tutor) => (
+        {/* Tutors Grid */}
+        {loading ? (
+          <p className="text-center py-20">Loading tutors...</p>
+        ) : error ? (
+          <p className="text-center py-20 text-red-500">Error: {error}</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-6">
+            {currentTutors.length > 0 ? (
+              currentTutors.map((tutor) => (
                 <TutorListingCard key={tutor.tutorId} tutor={tutor} />
-              ))}
-            </div>
-
-            {/* IMPROVED EMPTY STATE */}
-            {displayTutors.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[3.5rem] border border-slate-100 shadow-sm text-center px-6">
-                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-slate-300">
-                   <LayoutGrid size={40} />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">No tutors found for "{selectedSubject}"</h3>
-                <p className="text-slate-500 max-w-xs mb-8">Try adjusting your filters or search for a broader subject area.</p>
-                <button 
-                  onClick={() => setSelectedSubject("All Subjects")}
-                  className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:scale-105 transition-transform"
-                >
-                  Clear all filters
-                </button>
+              ))
+            ) : (
+              <div className="col-span-full bg-white border border-slate-100 rounded-[2.5rem] py-32 text-center shadow-sm">
+                <Users size={40} className="mx-auto text-slate-200 mb-4" />
+                <h3 className="text-xl font-black">No tutors found</h3>
+                <p className="text-slate-400 text-sm mt-2">Try adjusting your filters.</p>
               </div>
             )}
           </div>
-        </div>
-      </main>
+        )}
 
-      {/* FOOTER */}
-      <footer className="mt-20 py-20 bg-slate-900 text-white">
-        <div className="max-w-[1600px] mx-auto px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-8 border-b border-slate-800 pb-12">
-            <div>
-              <h3 className="text-3xl font-black italic tracking-tighter">
-                TutorHub<span className="text-indigo-500">.</span>
-              </h3>
-              <p className="text-slate-400 mt-2 text-sm font-medium">Redefining education excellence in Cambodia.</p>
-            </div>
-            <div className="flex gap-8 text-[10px] font-black uppercase tracking-widest text-slate-500">
-              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-white transition-colors">Contact</a>
-            </div>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-20 flex justify-center">
+            <nav className="flex items-center gap-2 p-1.5 bg-white border border-slate-100 rounded-full shadow-lg shadow-slate-200/40">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 disabled:opacity-20 transition-all"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <div className="flex gap-1">
+                {[...Array(totalPages)].map((_, i) => (
+                  <button
+                    key={i + 1}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`w-10 h-10 rounded-full text-[10px] font-black transition-all ${
+                      currentPage === i + 1 
+                        ? "bg-[#0f172a] text-white shadow-md shadow-blue-900/20" 
+                        : "text-[#0f172a] hover:bg-slate-50"
+                    }`}
+                  >
+                    {(i + 1).toString().padStart(2, '0')}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 disabled:opacity-20 transition-all"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </nav>
           </div>
-          <div className="pt-12 text-center">
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.5em]">
-              © 2026 TutorHub Cambodia • Elevating Potential
-            </p>
-          </div>
-        </div>
-      </footer>
+        )}
+      </main>
     </div>
   );
 }

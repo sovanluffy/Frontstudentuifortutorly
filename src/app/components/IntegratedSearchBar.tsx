@@ -1,73 +1,87 @@
 import { useState } from "react";
-import {
-  Search,
-  MapPin,
-  DollarSign,
-  Star,
-  Calendar,
-  Sparkles,
-  ChevronDown
-} from "lucide-react";
-import { Button } from "./figma/ui/button";
-import { subjects as mockSubjects } from "../data/mockData";
+import { Search, MapPin, DollarSign, Sparkles, BookOpen, ChevronDown } from "lucide-react";
 
-interface Props {
-  selectedSubject: string;
-  onSubjectSelect: (name: string) => void;
-}
+export function IntegratedSearchBar({ onFiltersChange }: { onFiltersChange?: (f: any) => void }) {
+  const [filters, setFilters] = useState({
+    search: "",
+    location: "",
+    maxPrice: 100,
+    subject: "All Subjects"
+  });
 
-export function IntegratedSearchBar({ selectedSubject, onSubjectSelect }: Props) {
+  const updateFilter = (key: string, value: any) => {
+    const updated = { ...filters, [key]: value };
+    setFilters(updated);
+    onFiltersChange?.(updated);
+  };
+
   return (
-    <div className="space-y-10">
-      {/* Category Section */}
-      <div>
-        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 mb-6">
-          Specialization
-        </label>
-        <div className="grid grid-cols-1 gap-2">
-          {["All Subjects", "Mathematics", "Physics", "English", "Chemistry"].map((subject) => (
-            <button
-              key={subject}
-              onClick={() => onSubjectSelect(subject)}
-              className={`group flex items-center justify-between px-5 py-4 rounded-2xl transition-all ${
-                selectedSubject === subject 
-                ? "bg-slate-900 text-white shadow-xl shadow-slate-200" 
-                : "bg-transparent text-slate-600 hover:bg-white"
-              }`}
-            >
-              <span className="text-sm font-bold">{subject}</span>
-              <div className={`w-1.5 h-1.5 rounded-full transition-all ${
-                selectedSubject === subject ? "bg-indigo-400 scale-150" : "bg-slate-300 group-hover:bg-indigo-400"
-              }`} />
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className="w-full group">
+      <div className="relative flex flex-row items-center bg-white border border-slate-200/60 rounded-full p-1.5 shadow-xl shadow-slate-200/30">
+        
+        {/* INNER CONTENT WRAPPER */}
+        <div className="flex flex-row items-center divide-x divide-slate-100 flex-1 min-w-0">
+          
+          {/* SEARCH FIELD */}
+          <div className="flex items-center px-4 flex-[1.5] min-w-0">
+            <Search size={16} className="text-orange-500 shrink-0 mr-3" />
+            <div className="flex flex-col min-w-0 w-full">
+              <span className="text-[7px] font-black uppercase text-slate-400 tracking-widest">Expertise</span>
+              <input
+                type="text"
+                placeholder="Tutor name..."
+                className="bg-transparent text-[11px] font-bold text-[#0f172a] outline-none placeholder:text-slate-300 w-full truncate"
+                onChange={(e) => updateFilter("search", e.target.value)}
+              />
+            </div>
+          </div>
 
-      {/* Budget Slider Placeholder */}
-      <div>
-        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6">
-          Max Hourly Rate
-        </label>
-        <div className="px-2">
-           <input type="range" className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
-           <div className="flex justify-between mt-4 text-[10px] font-bold text-slate-500 uppercase">
-              <span>$5/hr</span>
-              <span>$100/hr</span>
-           </div>
-        </div>
-      </div>
+          {/* SUBJECT DROPDOWN */}
+          <div className="flex items-center px-4 flex-1 min-w-0 hidden sm:flex">
+            <BookOpen size={16} className="text-blue-500 shrink-0 mr-3" />
+            <div className="flex flex-col min-w-0 w-full">
+              <span className="text-[7px] font-black uppercase text-slate-400 tracking-widest">Subject</span>
+              <div className="relative flex items-center">
+                <select 
+                  className="bg-transparent text-[11px] font-bold text-[#0f172a] outline-none cursor-pointer appearance-none w-full truncate pr-4"
+                  onChange={(e) => updateFilter("subject", e.target.value)}
+                >
+                  <option>All Subjects</option>
+                  <option>Mathematics</option>
+                  <option>English</option>
+                  <option>Physics</option>
+                </select>
+                <ChevronDown size={10} className="absolute right-0 text-slate-300 pointer-events-none" />
+              </div>
+            </div>
+          </div>
 
-      {/* Quick Toggles */}
-      <div className="pt-6 border-t border-slate-200">
-         <div className="flex flex-col gap-4">
-            {['Verified Only', 'Native Speaker', 'Online Lesson'].map((filter) => (
-               <label key={filter} className="flex items-center gap-3 cursor-pointer group">
-                  <div className="w-5 h-5 border-2 border-slate-200 rounded-md group-hover:border-indigo-500 transition-colors" />
-                  <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900">{filter}</span>
-               </label>
-            ))}
-         </div>
+          {/* PRICE SLIDER */}
+          <div className="flex items-center px-6 flex-1 min-w-0">
+            <div className="flex flex-col w-full min-w-0">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[7px] font-black uppercase text-slate-400 tracking-widest">Budget</span>
+                <span className="text-[9px] font-black text-orange-600">${filters.maxPrice}</span>
+              </div>
+              <input
+                type="range" min="10" max="200" step="5"
+                value={filters.maxPrice}
+                className="h-1 w-full bg-slate-100 rounded-lg appearance-none cursor-pointer accent-[#0f172a]"
+                onChange={(e) => updateFilter("maxPrice", parseInt(e.target.value))}
+              />
+            </div>
+          </div>
+
+        </div>
+
+        {/* SEARCH BUTTON */}
+        <button 
+          className="ml-2 bg-[#0f172a] hover:bg-orange-500 text-white h-11 px-6 rounded-full font-black text-[10px] uppercase tracking-widest transition-all shrink-0 flex items-center gap-2 shadow-lg active:scale-95"
+          onClick={() => onFiltersChange?.(filters)}
+        >
+          <Sparkles size={14} className="fill-white" />
+          <span className="hidden md:inline">Find</span>
+        </button>
       </div>
     </div>
   );

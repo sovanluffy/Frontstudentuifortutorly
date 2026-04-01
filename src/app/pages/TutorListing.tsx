@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { tutors } from '../data/mockData';
-import { TutorListingCard } from '../components/TutorListingCard';
+import { TutorListingCard } from '../components/listTutor/TutorListingCard';
 import { FilterSidebar } from '../components/FilterSidebar';
 import { Search, Sparkles, SlidersHorizontal } from 'lucide-react';
 
