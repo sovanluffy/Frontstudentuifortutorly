@@ -1,17 +1,8 @@
 import { useLoaderData, useNavigate } from "react-router-dom";
 import { 
-  Star, 
-  Users, 
-  MessageCircle, 
-  Phone, 
-  MapPin, 
-  ShieldCheck,
-  GraduationCap,
-  Briefcase,
-  Layers,
-  ChevronRight,
-  PlayCircle,
-  Award
+  Star, Users, MessageCircle, Phone, MapPin, ShieldCheck,
+  GraduationCap, Briefcase, Layers, ChevronRight, PlayCircle,
+  Award, CheckCircle2, Clock, Globe, Zap
 } from "lucide-react";
 import { Badge } from "@/app/components/figma/ui/badge";
 import { Button } from "@/app/components/figma/ui/button";
@@ -32,8 +23,6 @@ interface Tutor {
   location?: string;
   education?: { school: string; degree: string; year: string }[];
   experience?: { company: string; role: string; duration: string }[];
-  skills?: string[];
-  pricePerHour?: number;
   activeClasses?: any[];
   public?: boolean;
 }
@@ -46,202 +35,217 @@ export default function TutorDetailPage() {
   const coverPicUrl = tutor.coverImage || "https://images.unsplash.com/photo-1513258496099-48168024adb0?q=80&w=2070&auto=format&fit=crop";
 
   return (
-    <div className="min-h-screen pb-10 bg-[#f8fafc]">
-      {/* 1. Slim Cover */}
-      <div className="relative h-40 md:h-48 w-full overflow-hidden">
+    <div className="min-h-screen pb-20 bg-[#F8FAFC]">
+      {/* 1. PREMIUM COVER SECTION */}
+      <div className="relative h-[250px] md:h-[320px] w-full">
         <img src={coverPicUrl} alt="Cover" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#F8FAFC] via-black/20 to-transparent" />
       </div>
 
       <div className="container mx-auto px-4">
-        {/* 2. Compact Header */}
-        <div className="relative flex flex-col md:flex-row gap-4 items-start -mt-12 md:-mt-16 mb-6">
-          <div className="relative shrink-0">
-            <img 
-              src={profilePicUrl} 
-              alt={tutor.fullname} 
-              className="w-28 h-28 md:w-36 md:h-36 rounded-xl object-cover border-4 border-white shadow-md bg-white" 
-            />
-            {tutor.public && (
-              <span className="absolute bottom-2 right-2 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
-            )}
-          </div>
-
-          <div className="flex-1 md:pt-16 w-full">
-            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-slate-900 capitalize">{tutor.fullname}</h1>
-                  <ShieldCheck className="w-5 h-5 text-blue-500" />
+        <div className="relative -mt-20 md:-mt-28 flex flex-col lg:flex-row gap-8">
+          
+          {/* LEFT COLUMN: Profile & Info */}
+          <div className="flex-1 space-y-8">
+            
+            {/* Header: Identity (No Price Here) */}
+            <div className="flex flex-col md:flex-row items-end md:items-center gap-6">
+              <div className="relative">
+                <div className="w-32 h-32 md:w-40 md:h-40 rounded-[32px] overflow-hidden border-[6px] border-white shadow-xl bg-white">
+                  <img src={profilePicUrl} className="w-full h-full object-cover" alt={tutor.fullname} />
                 </div>
-                
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-medium text-slate-500">
-                  <div className="flex items-center gap-1">
-                    {tutor.rating > 0 ? (
-                      <>
-                        <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-                        <span className="text-slate-900 font-bold">{tutor.rating}</span>
-                        <span>({tutor.studentsTaught} students)</span>
-                      </>
-                    ) : (
-                      <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-600 border-blue-100">New Tutor</Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>{tutor.location || "Phnom Penh, KH"}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Price & Primary Action */}
-              <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
-                <div className="px-3 border-r border-slate-100">
-                  <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">Rate</p>
-                  <p className="text-lg font-black text-indigo-600 leading-none">${tutor.pricePerHour || 15}<span className="text-[10px] text-slate-400 font-normal">/hr</span></p>
-                </div>
-                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 h-8 px-4 text-xs font-bold">
-                  Book Session
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. Content Tabs */}
-        <Tabs defaultValue="about" className="space-y-4">
-          <TabsList className="bg-slate-200/50 p-0.5 rounded-md h-8 w-fit">
-            <TabsTrigger value="about" className="text-[11px] px-4 h-7">About</TabsTrigger>
-            <TabsTrigger value="classes" className="text-[11px] px-4 h-7">Classes ({tutor.activeClasses?.length || 0})</TabsTrigger>
-            <TabsTrigger value="portfolio" className="text-[11px] px-4 h-7">Certificates</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="about" className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 space-y-4">
-              {/* Bio Section */}
-              <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
-                <h3 className="text-[11px] font-bold mb-2 uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <Layers className="w-3 h-3" /> Professional Bio
-                </h3>
-                <p className="text-slate-600 text-sm leading-relaxed">{tutor.bio}</p>
-              </div>
-
-              {/* Video Section (Added based on your JSON) */}
-              {tutor.introVideoUrl && (
-                <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
-                  <h3 className="text-[11px] font-bold mb-3 uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                    <PlayCircle className="w-3.5 h-3.5 text-red-500" /> Introduction Video
-                  </h3>
-                  <div className="aspect-video rounded-lg overflow-hidden bg-slate-900 border border-slate-200">
-                    <video 
-                      src={tutor.introVideoUrl} 
-                      controls 
-                      className="w-full h-full object-contain"
-                      poster={tutor.coverImage}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Education & Experience Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
-                  <h3 className="text-[11px] font-bold mb-3 uppercase text-slate-400 flex items-center gap-2">
-                    <GraduationCap className="w-3.5 h-3.5" /> Education
-                  </h3>
-                  {tutor.education && tutor.education.length > 0 ? (
-                    tutor.education.map((edu, i) => (
-                      <div key={i} className="mb-2 last:mb-0 border-l-2 border-indigo-100 pl-3">
-                        <p className="text-sm font-bold text-slate-800 leading-none">{edu.degree}</p>
-                        <p className="text-[11px] text-slate-500 mt-1">{edu.school} • {edu.year}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-slate-400 italic">No education details listed.</p>
-                  )}
-                </div>
-
-                <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
-                  <h3 className="text-[11px] font-bold mb-3 uppercase text-slate-400 flex items-center gap-2">
-                    <Briefcase className="w-3.5 h-3.5" /> Experience
-                  </h3>
-                  {tutor.experience && tutor.experience.length > 0 ? (
-                    tutor.experience.map((exp, i) => (
-                      <div key={i} className="mb-2 last:mb-0 border-l-2 border-emerald-100 pl-3">
-                        <p className="text-sm font-bold text-slate-800 leading-none">{exp.role}</p>
-                        <p className="text-[11px] text-slate-500 mt-1">{exp.company} • {exp.duration}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-slate-400 italic">No experience details listed.</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Sidebar Connect */}
-            <div className="space-y-4">
-              <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
-                <h3 className="text-[11px] font-bold mb-3 uppercase text-slate-400">Quick Connect</h3>
-                <div className="flex flex-col gap-2">
-                  <Button variant="outline" size="sm" className="w-full h-9 text-[11px] border-slate-200">
-                    <MessageCircle className="w-3.5 h-3.5 mr-1.5 text-indigo-500" /> Send Message
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full h-9 text-[11px] border-slate-200">
-                    <Phone className="w-3.5 h-3.5 mr-1.5 text-emerald-500" /> Book Free Trial
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="classes">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {tutor.activeClasses && tutor.activeClasses.length > 0 ? (
-                tutor.activeClasses.map((item: any) => (
-                  <div key={item.id} className="relative group">
-                    <ClassCard openClass={item} onBookClick={() => navigate(`/classes/${item.id}`)} />
-                    <Button 
-                      onClick={() => navigate(`/classes/${item.id}`)}
-                      variant="secondary" 
-                      className="absolute bottom-4 right-4 h-7 text-[10px] font-bold bg-white/90 backdrop-blur hover:bg-white shadow-sm border border-slate-200"
-                    >
-                      View Details <ChevronRight className="w-3 h-3 ml-1" />
-                    </Button>
-                  </div>
-                ))
-              ) : (
-                <div className="col-span-full py-12 flex flex-col items-center justify-center bg-white border border-dashed rounded-xl border-slate-200">
-                   <div className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center mb-3">
-                      <Users className="w-5 h-5 text-slate-300" />
-                   </div>
-                   <p className="text-slate-400 text-sm font-medium">No active group classes currently listed.</p>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="portfolio">
-            <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-6">
-                <Award className="w-5 h-5 text-amber-500" />
-                <h3 className="text-sm font-bold uppercase tracking-wide text-slate-700">Verified Certificates</h3>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                {tutor.certificateImages && tutor.certificateImages.length > 0 ? (
-                  tutor.certificateImages.map((img: string, i: number) => (
-                    <div key={i} className="group relative aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 bg-slate-50 transition-all hover:ring-2 hover:ring-indigo-500/50">
-                      <img src={img} alt="Certificate" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors cursor-zoom-in" />
-                    </div>
-                  ))
-                ) : (
-                  <p className="col-span-full text-center py-10 text-slate-400 text-sm italic">No certificates uploaded yet.</p>
+                {tutor.public && (
+                  <div className="absolute bottom-2 right-2 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full" />
                 )}
               </div>
+
+              <div className="flex-1 pb-2">
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-3xl font-black text-slate-900 tracking-tight capitalize">
+                    {tutor.fullname}
+                  </h1>
+                  <Badge className="bg-blue-50 text-blue-600 border-blue-100 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                    <ShieldCheck size={12} /> Verified
+                  </Badge>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 text-sm font-bold text-slate-500">
+                  <div className="flex items-center gap-1.5">
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                    <span className="text-slate-900">{tutor.rating || "5.0"}</span>
+                    <span className="text-slate-400 font-medium">({tutor.studentsTaught} Students)</span>
+                  </div>
+                  <div className="h-1 w-1 rounded-full bg-slate-300" />
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4" />
+                    <span>{tutor.location || "Remote / Phnom Penh"}</span>
+                  </div>
+                </div>
+              </div>
             </div>
-          </TabsContent>
-        </Tabs>
+
+            {/* Navigation Tabs */}
+            <Tabs defaultValue="about" className="w-full">
+              <TabsList className="w-full justify-start bg-transparent border-b border-slate-200 rounded-none h-12 p-0 gap-8">
+                <TabsTrigger value="about" className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none bg-transparent px-0 text-sm font-bold shadow-none">
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger value="classes" className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none bg-transparent px-0 text-sm font-bold shadow-none">
+                  Available Classes ({tutor.activeClasses?.length || 0})
+                </TabsTrigger>
+                <TabsTrigger value="portfolio" className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none bg-transparent px-0 text-sm font-bold shadow-none">
+                  Credentials
+                </TabsTrigger>
+              </TabsList>
+
+              <div className="py-8">
+                <TabsContent value="about" className="space-y-10 mt-0">
+                  <section>
+                    <h3 className="text-lg font-black text-slate-900 flex items-center gap-2 mb-4">
+                      <Layers className="w-5 h-5 text-blue-500" /> Professional Biography
+                    </h3>
+                    <p className="text-slate-600 text-base leading-relaxed max-w-3xl">
+                      {tutor.bio}
+                    </p>
+                  </section>
+
+                  {tutor.introVideoUrl && (
+                    <section>
+                       <h3 className="text-lg font-black text-slate-900 flex items-center gap-2 mb-4">
+                        <PlayCircle className="w-5 h-5 text-red-500" /> Introduction Video
+                      </h3>
+                      <div className="relative aspect-video rounded-[32px] overflow-hidden bg-slate-900 border-8 border-white shadow-2xl">
+                        <video src={tutor.introVideoUrl} controls className="w-full h-full object-contain" />
+                      </div>
+                    </section>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm">
+                      <h4 className="font-bold text-xs uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+                        <GraduationCap className="w-4 h-4" /> Education
+                      </h4>
+                      <div className="space-y-4">
+                        {tutor.education?.map((edu, i) => (
+                          <div key={i} className="border-l-2 border-blue-100 pl-4">
+                            <p className="font-bold text-slate-900">{edu.degree}</p>
+                            <p className="text-xs text-slate-500 font-medium">{edu.school} • {edu.year}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm">
+                      <h4 className="font-bold text-xs uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+                        <Briefcase className="w-4 h-4" /> Experience
+                      </h4>
+                      <div className="space-y-4">
+                        {tutor.experience?.map((exp, i) => (
+                          <div key={i} className="border-l-2 border-emerald-100 pl-4">
+                            <p className="font-bold text-slate-900">{exp.role}</p>
+                            <p className="text-xs text-slate-500 font-medium">{exp.company} • {exp.duration}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* CLASSES CONTENT: Includes Price and Open Class Button */}
+                <TabsContent value="classes" className="mt-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {tutor.activeClasses?.map((item: any) => (
+                      <div key={item.id} className="group relative bg-white rounded-[32px] p-3 border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                        
+                        {/* Custom Price Tag Overlay */}
+                        <div className="absolute top-6 left-6 z-10 bg-white/95 backdrop-blur px-3 py-1.5 rounded-2xl shadow-xl border border-slate-50 flex items-center gap-1.5">
+                           <Zap size={14} className="text-amber-500 fill-amber-500" />
+                           <span className="text-sm font-black text-slate-900">${item.price || '0'}</span>
+                        </div>
+
+                        <ClassCard openClass={item} />
+                        
+                        <div className="px-3 pb-3 pt-2 flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[11px]">
+                              <Users size={14} /> {item.maxStudents || 0} Slots
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[11px]">
+                              <Clock size={14} /> {item.duration || '1h'}
+                            </div>
+                          </div>
+                          <Button 
+                            onClick={() => navigate(`/classes/${item.id}`)}
+                            size="sm" 
+                            className="rounded-xl bg-slate-900 hover:bg-blue-600 text-white font-black px-6 transition-colors"
+                          >
+                            Open Class
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="portfolio" className="mt-0">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {tutor.certificateImages?.map((img, i) => (
+                      <div key={i} className="aspect-[4/3] rounded-2xl overflow-hidden border-4 border-white shadow-md hover:scale-105 transition-transform cursor-pointer">
+                        <img src={img} className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                </TabsContent>
+              </div>
+            </Tabs>
+          </div>
+
+          {/* RIGHT COLUMN: Sticky Booking Widget (No Price) */}
+          <div className="w-full lg:w-[380px]">
+            <div className="sticky top-10 space-y-4">
+              <div className="bg-white rounded-[40px] p-8 border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)]">
+                <div className="mb-8">
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Personal Coaching</h3>
+                  <p className="text-slate-400 text-sm font-medium mt-1">Direct 1-on-1 mentorship tailored to your learning goals.</p>
+                </div>
+
+                <div className="space-y-4 mb-8">
+                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                    <span className="text-sm font-bold text-slate-700">Free 15-min Trial Session</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                    <Globe className="w-5 h-5 text-blue-500" />
+                    <span className="text-sm font-bold text-slate-700">Global Learning Support</span>
+                  </div>
+                </div>
+
+                <div className="grid gap-3">
+                  <Button className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-base shadow-xl shadow-blue-100">
+                    Send Inquiry
+                  </Button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button variant="outline" className="h-12 rounded-xl border-slate-200 font-bold text-slate-600">
+                      <MessageCircle className="w-4 h-4 mr-2 text-blue-500" /> Chat
+                    </Button>
+                    <Button variant="outline" className="h-12 rounded-xl border-slate-200 font-bold text-slate-600">
+                      <Phone className="w-4 h-4 mr-2 text-emerald-500" /> Call
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Minimal Stats Card */}
+              <div className="bg-slate-900 rounded-[32px] p-6 text-white relative overflow-hidden">
+                 <div className="relative z-10">
+                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Success Stories</p>
+                    <p className="text-2xl font-black">{tutor.studentsTaught}+ Global Students</p>
+                 </div>
+                 <Users className="absolute -right-2 -bottom-2 w-20 h-20 text-white/5" />
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   );
