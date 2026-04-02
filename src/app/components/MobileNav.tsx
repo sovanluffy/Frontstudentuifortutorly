@@ -1,15 +1,16 @@
-import { Home, Search, Calendar, Heart, User } from 'lucide-react';
-import { Link, useLocation } from 'react-router';
+// src/components/MobileNav.tsx
+import { Home, Search, Calendar, Heart, User } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 
-export function MobileNav() {
+const MobileNav = () => {
   const location = useLocation();
 
   const navItems = [
-    { path: '/', label: 'Home', icon: Home },
-    { path: '/search', label: 'Search', icon: Search },
-    { path: '/bookings', label: 'Bookings', icon: Calendar },
-    { path: '/favorites', label: 'Favorites', icon: Heart },
-    { path: '/profile', label: 'Profile', icon: User },
+    { path: "/", label: "Home", icon: Home },
+    { path: "/search", label: "Search", icon: Search },
+    { path: "/bookings", label: "Bookings", icon: Calendar },
+    { path: "/favorites", label: "Favorites", icon: Heart },
+    { path: "/profile", label: "Profile", icon: User },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -24,7 +25,7 @@ export function MobileNav() {
               key={item.path}
               to={item.path}
               className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors ${
-                isActive(item.path) ? 'text-primary' : 'text-muted-foreground'
+                isActive(item.path) ? "text-primary" : "text-muted-foreground"
               }`}
             >
               <Icon className="w-5 h-5" />
@@ -35,4 +36,6 @@ export function MobileNav() {
       </div>
     </nav>
   );
-}
+};
+
+export default MobileNav; // ✅ Default export

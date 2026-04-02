@@ -1,22 +1,14 @@
-import { Outlet } from "react-router";
-import  Header  from "./Header";
-import { MobileNav } from "./MobileNav";
+// Layout.tsx
+import { Outlet } from "react-router-dom";
+import Navbar from "./Navbar";
 
 export function Layout() {
   return (
-    <div className="w-full min-h-screen bg-white overflow-x-hidden">
-
-      {/* Header */}
-      <Header />
-
-      {/* Main Content */}
-      <main className="w-full">
-        <Outlet />
+    <div className="flex flex-col min-h-screen">
+      <Navbar />  {/* ✅ inside router context */}
+      <main className="flex-1">
+        <Outlet /> {/* children routes render here */}
       </main>
-
-      {/* Mobile Bottom Nav */}
-      <MobileNav />
-
     </div>
   );
 }
