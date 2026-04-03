@@ -1,246 +1,212 @@
+import * as React from "react";
 import { useLoaderData, useNavigate } from "react-router-dom";
 import { 
   Star, Users, MessageCircle, Phone, MapPin, ShieldCheck,
-  GraduationCap, Briefcase, Layers, ChevronRight, PlayCircle,
-  Award, CheckCircle2, Clock, Globe, Zap
+  GraduationCap, Briefcase, Layers, PlayCircle,
+  Clock, Globe, Zap, CheckCircle2, Award
 } from "lucide-react";
 import { Badge } from "@/app/components/figma/ui/badge";
 import { Button } from "@/app/components/figma/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/figma/ui/tabs";
 import { ClassCard } from "../components/ClassCard";
-
-interface Tutor {
-  tutorId: number;
-  fullname: string;
-  profilePicture: string;
-  coverImage?: string;
-  introVideoUrl?: string;
-  certificateImages?: string[];
-  subjects?: string[];
-  bio: string;
-  rating: number;
-  studentsTaught: number;
-  location?: string;
-  education?: { school: string; degree: string; year: string }[];
-  experience?: { company: string; role: string; duration: string }[];
-  activeClasses?: any[];
-  public?: boolean;
-}
+import { cn } from "@/lib/utils";
 
 export default function TutorDetailPage() {
-  const tutor = useLoaderData() as Tutor;
+  const tutor = useLoaderData() as any;
   const navigate = useNavigate();
+  const [currentSlide, setCurrentSlide] = React.useState(0);
 
   const profilePicUrl = tutor.profilePicture || "/fallback-avatar.png";
-  const coverPicUrl = tutor.coverImage || "https://images.unsplash.com/photo-1513258496099-48168024adb0?q=80&w=2070&auto=format&fit=crop";
+  
+  // 1. Auto-sliding Background Data
+  const slides = [
+    tutor.coverImage || "https://images.unsplash.com/photo-1513258496099-48168024adb0?q=80&w=2070&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=1920",
+    "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=1920"
+  ];
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [slides.length]);
 
   return (
-    <div className="min-h-screen pb-20 bg-[#F8FAFC]">
-      {/* 1. PREMIUM COVER SECTION */}
-      <div className="relative h-[250px] md:h-[320px] w-full">
-        <img src={coverPicUrl} alt="Cover" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#F8FAFC] via-black/20 to-transparent" />
+    <div className="min-h-screen pb-12 bg-[#F8FAFC]">
+      {/* 2. COMPACT AUTO-SLIDE COVER (Height: 200px) */}
+      <div className="relative h-[200px] w-full overflow-hidden bg-[#0F294D]">
+        {slides.map((img, index) => (
+          <img 
+            key={index}
+            src={img} 
+            className={cn(
+              "absolute inset-0 w-full h-full object-cover transition-opacity duration-1000",
+              index === currentSlide ? "opacity-40" : "opacity-0"
+            )} 
+            alt="Cover" 
+          />
+        ))}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#F8FAFC] via-transparent to-transparent" />
       </div>
 
-      <div className="container mx-auto px-4">
-        <div className="relative -mt-20 md:-mt-28 flex flex-col lg:flex-row gap-8">
+      <div className="max-w-[1200px] mx-auto px-6">
+        <div className="relative -mt-16 flex flex-col lg:flex-row gap-6">
           
-          {/* LEFT COLUMN: Profile & Info */}
-          <div className="flex-1 space-y-8">
+          {/* LEFT COLUMN: Profile & Tabs */}
+          <div className="flex-1 space-y-6">
             
-            {/* Header: Identity (No Price Here) */}
-            <div className="flex flex-col md:flex-row items-end md:items-center gap-6">
-              <div className="relative">
-                <div className="w-32 h-32 md:w-40 md:h-40 rounded-[32px] overflow-hidden border-[6px] border-white shadow-xl bg-white">
+            {/* Header: Identity (Small Scale) */}
+            <div className="flex items-end gap-4">
+              <div className="relative shrink-0">
+                <div className="w-28 h-28 rounded-3xl overflow-hidden border-4 border-white shadow-md bg-white">
                   <img src={profilePicUrl} className="w-full h-full object-cover" alt={tutor.fullname} />
                 </div>
                 {tutor.public && (
-                  <div className="absolute bottom-2 right-2 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full" />
+                  <div className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full" />
                 )}
               </div>
 
-              <div className="flex-1 pb-2">
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-3xl font-black text-slate-900 tracking-tight capitalize">
-                    {tutor.fullname}
-                  </h1>
-                  <Badge className="bg-blue-50 text-blue-600 border-blue-100 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                    <ShieldCheck size={12} /> Verified
+              <div className="pb-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h1 className="text-2xl font-black text-slate-900 tracking-tight">{tutor.fullname}</h1>
+                  <Badge className="bg-blue-50 text-blue-600 border-blue-100 text-[10px] h-5 px-2">
+                    <ShieldCheck size={10} className="mr-1"/> Verified
                   </Badge>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-4 text-sm font-bold text-slate-500">
-                  <div className="flex items-center gap-1.5">
-                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                    <span className="text-slate-900">{tutor.rating || "5.0"}</span>
-                    <span className="text-slate-400 font-medium">({tutor.studentsTaught} Students)</span>
-                  </div>
-                  <div className="h-1 w-1 rounded-full bg-slate-300" />
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-4 h-4" />
-                    <span>{tutor.location || "Remote / Phnom Penh"}</span>
-                  </div>
+                <div className="flex items-center gap-3 text-[12px] font-bold text-slate-500">
+                  <span className="flex items-center gap-1"><Star size={14} className="text-amber-400 fill-amber-400"/> {tutor.rating || "5.0"}</span>
+                  <span className="flex items-center gap-1"><MapPin size={14}/> {tutor.location || "Remote"}</span>
+                  <span className="flex items-center gap-1"><Users size={14}/> {tutor.studentsTaught} Students</span>
                 </div>
               </div>
             </div>
 
-            {/* Navigation Tabs */}
+            {/* Navigation Tabs (Slim height: 36px) */}
             <Tabs defaultValue="about" className="w-full">
-              <TabsList className="w-full justify-start bg-transparent border-b border-slate-200 rounded-none h-12 p-0 gap-8">
-                <TabsTrigger value="about" className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none bg-transparent px-0 text-sm font-bold shadow-none">
-                  Overview
-                </TabsTrigger>
-                <TabsTrigger value="classes" className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none bg-transparent px-0 text-sm font-bold shadow-none">
-                  Available Classes ({tutor.activeClasses?.length || 0})
-                </TabsTrigger>
-                <TabsTrigger value="portfolio" className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none bg-transparent px-0 text-sm font-bold shadow-none">
-                  Credentials
-                </TabsTrigger>
+              <TabsList className="bg-transparent border-b border-slate-200 h-9 p-0 gap-6 rounded-none justify-start">
+                <TabsTrigger value="about" className="rounded-none bg-transparent px-0 text-[13px] font-bold data-[state=active]:border-b-2 data-[state=active]:border-blue-600 shadow-none">Overview</TabsTrigger>
+                <TabsTrigger value="classes" className="rounded-none bg-transparent px-0 text-[13px] font-bold data-[state=active]:border-b-2 data-[state=active]:border-blue-600 shadow-none">Classes ({tutor.activeClasses?.length || 0})</TabsTrigger>
+                <TabsTrigger value="portfolio" className="rounded-none bg-transparent px-0 text-[13px] font-bold data-[state=active]:border-b-2 data-[state=active]:border-blue-600 shadow-none">Credentials</TabsTrigger>
               </TabsList>
 
-              <div className="py-8">
-                <TabsContent value="about" className="space-y-10 mt-0">
+              <div className="py-6">
+                {/* OVERVIEW TAB CONTENT */}
+                <TabsContent value="about" className="space-y-6 mt-0">
                   <section>
-                    <h3 className="text-lg font-black text-slate-900 flex items-center gap-2 mb-4">
-                      <Layers className="w-5 h-5 text-blue-500" /> Professional Biography
+                    <h3 className="text-[14px] font-black text-slate-900 flex items-center gap-2 mb-2 uppercase tracking-wide">
+                      <Layers size={16} className="text-blue-500" /> Bio
                     </h3>
-                    <p className="text-slate-600 text-base leading-relaxed max-w-3xl">
-                      {tutor.bio}
-                    </p>
+                    <p className="text-slate-600 text-[13.5px] leading-relaxed max-w-2xl">{tutor.bio}</p>
                   </section>
 
+                  {/* SMALL VIDEO SECTION */}
                   {tutor.introVideoUrl && (
-                    <section>
-                       <h3 className="text-lg font-black text-slate-900 flex items-center gap-2 mb-4">
-                        <PlayCircle className="w-5 h-5 text-red-500" /> Introduction Video
+                    <section className="max-w-xl">
+                      <h3 className="text-[14px] font-black text-slate-900 flex items-center gap-2 mb-3 uppercase tracking-wide">
+                        <PlayCircle size={16} className="text-red-500" /> Intro Video
                       </h3>
-                      <div className="relative aspect-video rounded-[32px] overflow-hidden bg-slate-900 border-8 border-white shadow-2xl">
-                        <video src={tutor.introVideoUrl} controls className="w-full h-full object-contain" />
+                      <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-900 border-4 border-white shadow-sm">
+                        <video src={tutor.introVideoUrl} controls className="w-full h-full object-cover" />
                       </div>
                     </section>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm">
-                      <h4 className="font-bold text-xs uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-                        <GraduationCap className="w-4 h-4" /> Education
-                      </h4>
-                      <div className="space-y-4">
-                        {tutor.education?.map((edu, i) => (
-                          <div key={i} className="border-l-2 border-blue-100 pl-4">
-                            <p className="font-bold text-slate-900">{edu.degree}</p>
-                            <p className="text-xs text-slate-500 font-medium">{edu.school} • {edu.year}</p>
-                          </div>
-                        ))}
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                      <h4 className="text-[10px] font-black uppercase text-slate-400 mb-3 flex items-center gap-2"><GraduationCap size={14}/> Education</h4>
+                      {tutor.education?.map((edu: any, i: number) => (
+                        <div key={i} className="border-l-2 border-blue-50 pl-3 mb-2">
+                          <p className="text-[13px] font-bold text-slate-800">{edu.degree}</p>
+                          <p className="text-[11px] text-slate-500">{edu.school} • {edu.year}</p>
+                        </div>
+                      ))}
                     </div>
-                    <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm">
-                      <h4 className="font-bold text-xs uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-                        <Briefcase className="w-4 h-4" /> Experience
-                      </h4>
-                      <div className="space-y-4">
-                        {tutor.experience?.map((exp, i) => (
-                          <div key={i} className="border-l-2 border-emerald-100 pl-4">
-                            <p className="font-bold text-slate-900">{exp.role}</p>
-                            <p className="text-xs text-slate-500 font-medium">{exp.company} • {exp.duration}</p>
-                          </div>
-                        ))}
-                      </div>
+                    <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                      <h4 className="text-[10px] font-black uppercase text-slate-400 mb-3 flex items-center gap-2"><Briefcase size={14}/> Experience</h4>
+                      {tutor.experience?.map((exp: any, i: number) => (
+                        <div key={i} className="border-l-2 border-emerald-50 pl-3 mb-2">
+                          <p className="text-[13px] font-bold text-slate-800">{exp.role}</p>
+                          <p className="text-[11px] text-slate-500">{exp.company} • {exp.duration}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </TabsContent>
 
-                {/* CLASSES CONTENT: Includes Price and Open Class Button */}
-                <TabsContent value="classes" className="mt-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {tutor.activeClasses?.map((item: any) => (
-                      <div key={item.id} className="group relative bg-white rounded-[32px] p-3 border border-slate-100 shadow-sm hover:shadow-md transition-all">
-                        
-                        {/* Custom Price Tag Overlay */}
-                        <div className="absolute top-6 left-6 z-10 bg-white/95 backdrop-blur px-3 py-1.5 rounded-2xl shadow-xl border border-slate-50 flex items-center gap-1.5">
-                           <Zap size={14} className="text-amber-500 fill-amber-500" />
-                           <span className="text-sm font-black text-slate-900">${item.price || '0'}</span>
+                {/* CLASSES TAB CONTENT */}
+                <TabsContent value="classes" className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-0">
+                  {tutor.activeClasses?.map((item: any) => (
+                    <div key={item.id} className="bg-white rounded-xl p-2 border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                      <div className="relative">
+                        <div className="absolute top-2 left-2 z-10 bg-white/90 px-2 py-0.5 rounded-lg text-[12px] font-black border border-slate-100 flex items-center gap-1">
+                          <Zap size={12} className="text-amber-500 fill-amber-500" /> ${item.price}
                         </div>
-
                         <ClassCard openClass={item} />
-                        
-                        <div className="px-3 pb-3 pt-2 flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[11px]">
-                              <Users size={14} /> {item.maxStudents || 0} Slots
-                            </div>
-                            <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[11px]">
-                              <Clock size={14} /> {item.duration || '1h'}
-                            </div>
-                          </div>
-                          <Button 
-                            onClick={() => navigate(`/classes/${item.id}`)}
-                            size="sm" 
-                            className="rounded-xl bg-slate-900 hover:bg-blue-600 text-white font-black px-6 transition-colors"
-                          >
-                            Open Class
-                          </Button>
-                        </div>
                       </div>
-                    ))}
-                  </div>
+                      <div className="p-2 flex items-center justify-between">
+                        <div className="flex gap-3 text-[10px] text-slate-400 font-bold uppercase">
+                          <span className="flex items-center gap-1"><Users size={12}/> {item.maxStudents}</span>
+                          <span className="flex items-center gap-1"><Clock size={12}/> {item.duration}</span>
+                        </div>
+                        <Button onClick={() => navigate(`/classes/${item.id}`)} size="sm" className="h-7 rounded-lg bg-slate-900 text-[11px] font-black hover:bg-blue-600">Open</Button>
+                      </div>
+                    </div>
+                  ))}
                 </TabsContent>
 
+                {/* CREDENTIALS TAB CONTENT (Fixed Aspect Ratios) */}
                 <TabsContent value="portfolio" className="mt-0">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {tutor.certificateImages?.map((img, i) => (
-                      <div key={i} className="aspect-[4/3] rounded-2xl overflow-hidden border-4 border-white shadow-md hover:scale-105 transition-transform cursor-pointer">
-                        <img src={img} className="w-full h-full object-cover" />
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {tutor.certificateImages?.map((img: string, i: number) => (
+                      <div key={i} className="group relative aspect-[4/3] rounded-xl overflow-hidden border-2 border-white shadow-sm bg-slate-100">
+                        <img src={img} className="w-full h-full object-cover transition-transform group-hover:scale-105" alt="cert" />
                       </div>
                     ))}
+                    {(!tutor.certificateImages || tutor.certificateImages.length === 0) && (
+                      <div className="col-span-full py-8 text-center bg-white rounded-xl border border-dashed border-slate-200">
+                        <Award className="mx-auto text-slate-300 mb-1" size={24} />
+                        <p className="text-slate-400 text-[10px] font-bold uppercase">No Credentials Listed</p>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
               </div>
             </Tabs>
           </div>
 
-          {/* RIGHT COLUMN: Sticky Booking Widget (No Price) */}
-          <div className="w-full lg:w-[380px]">
-            <div className="sticky top-10 space-y-4">
-              <div className="bg-white rounded-[40px] p-8 border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)]">
-                <div className="mb-8">
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Personal Coaching</h3>
-                  <p className="text-slate-400 text-sm font-medium mt-1">Direct 1-on-1 mentorship tailored to your learning goals.</p>
-                </div>
-
-                <div className="space-y-4 mb-8">
-                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                    <span className="text-sm font-bold text-slate-700">Free 15-min Trial Session</span>
+          {/* RIGHT COLUMN: Sticky Sidebar (Fixed Width: 300px) */}
+          <div className="w-full lg:w-[300px] shrink-0">
+            <div className="sticky top-6 space-y-4">
+              <div className="bg-white rounded-[28px] p-5 border border-slate-100 shadow-sm">
+                <h3 className="text-md font-black text-slate-900 mb-1">1-on-1 Coaching</h3>
+                <p className="text-slate-400 text-[11px] mb-4">Direct personal mentorship sessions.</p>
+                <div className="space-y-2 mb-5">
+                  <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg text-[11px] font-bold text-slate-700">
+                    <CheckCircle2 size={14} className="text-emerald-500" /> Free 15-min Trial
                   </div>
-                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
-                    <Globe className="w-5 h-5 text-blue-500" />
-                    <span className="text-sm font-bold text-slate-700">Global Learning Support</span>
+                  <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-xl text-[11px] font-bold text-slate-700">
+                    <Globe size={14} className="text-blue-500" /> Global Support
                   </div>
                 </div>
-
-                <div className="grid gap-3">
-                  <Button className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-base shadow-xl shadow-blue-100">
-                    Send Inquiry
-                  </Button>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button variant="outline" className="h-12 rounded-xl border-slate-200 font-bold text-slate-600">
-                      <MessageCircle className="w-4 h-4 mr-2 text-blue-500" /> Chat
+                <div className="grid gap-2">
+                  <Button className="w-full h-10 rounded-lg bg-blue-600 font-bold text-[13px] shadow-sm">Send Inquiry</Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" className="h-9 rounded-lg text-[11px] font-bold">
+                      <MessageCircle size={14} className="mr-1 text-blue-500"/> Chat
                     </Button>
-                    <Button variant="outline" className="h-12 rounded-xl border-slate-200 font-bold text-slate-600">
-                      <Phone className="w-4 h-4 mr-2 text-emerald-500" /> Call
+                    <Button variant="outline" className="h-9 rounded-lg text-[11px] font-bold">
+                      <Phone size={14} className="mr-1 text-emerald-500"/> Call
                     </Button>
                   </div>
                 </div>
               </div>
-
-              {/* Minimal Stats Card */}
-              <div className="bg-slate-900 rounded-[32px] p-6 text-white relative overflow-hidden">
-                 <div className="relative z-10">
-                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Success Stories</p>
-                    <p className="text-2xl font-black">{tutor.studentsTaught}+ Global Students</p>
-                 </div>
-                 <Users className="absolute -right-2 -bottom-2 w-20 h-20 text-white/5" />
+              
+              {/* Stats Card */}
+              <div className="bg-slate-900 rounded-2xl p-4 text-white relative overflow-hidden">
+                <p className="text-slate-500 text-[9px] font-black uppercase tracking-widest">Impact</p>
+                <p className="text-md font-black">{tutor.studentsTaught}+ Active Students</p>
+                <Users className="absolute -right-2 -bottom-2 w-12 h-12 text-white/5" />
               </div>
             </div>
           </div>

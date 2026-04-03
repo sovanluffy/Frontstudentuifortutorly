@@ -1,10 +1,9 @@
 import { defineConfig } from 'vite'
-import { fileURLToPath } from 'url' // New: Standard for modern Vite
+import { fileURLToPath } from 'url'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
-// Convert the current file URL to a directory path
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
@@ -12,9 +11,18 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    proxy: {
+      // When you fetch('/api/...'), Vite redirects it to Render
+      '/api': {
+        target: 'https://toturhub-dev.onrender.com',
+        changeOrigin: true,
+        secure: false, // Helps if there are SSL issues with dev environments
+      }
+    }
+  },
   resolve: {
     alias: {
-      // Now @ will correctly point to your src folder
       '@': path.resolve(__dirname, './src'),
     },
   },

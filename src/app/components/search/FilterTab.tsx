@@ -13,14 +13,24 @@ export function FilterTab({ label, icon: Icon, isActive, onClick }: TabProps) {
     <li 
       onClick={onClick}
       className={cn(
-        "flex items-center gap-2 px-5 py-2.5 cursor-pointer transition-all duration-200 rounded-full my-1 mx-1",
+        // Reduced padding from px-5 py-2.5 to px-4 py-1.5
+        // Removed scale-105 to prevent size jumping
+        "flex items-center gap-2 px-4 py-1.5 cursor-pointer transition-all duration-200 rounded-t-lg relative",
         isActive 
-          ? "bg-white text-[#0F294D] shadow-lg scale-105" // Active State
-          : "text-white hover:bg-white/10"                // Inactive State
+          ? "bg-white text-[#0F294D]" 
+          : "text-white/90 hover:bg-white/10"
       )}
     >
-      <Icon size={18} className={isActive ? "text-[#0066FF]" : "text-white/80"} />
-      <span className="text-[14px] font-bold whitespace-nowrap">{label}</span>
+      {/* Reduced icon size from 18 to 16 */}
+      <Icon size={16} className={isActive ? "text-[#0066FF]" : "text-white/70"} />
+      
+      {/* Reduced font size from 14px to 13px */}
+      <span className="text-[13px] font-bold whitespace-nowrap">{label}</span>
+
+      {/* Optional: Subtle bottom indicator for active state if you want it to look "locked in" */}
+      {isActive && (
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0066FF] hidden" />
+      )}
     </li>
   );
 }

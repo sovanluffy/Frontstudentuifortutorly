@@ -6,22 +6,22 @@ export function TutorListingCard({ tutor }: { tutor: any }) {
 
   return (
     <div className="w-full group">
-      {/* Container: No harsh borders, just a smooth shadow and rounded corners */}
-      <div className="bg-white rounded-[32px] p-5 md:p-7 flex flex-col md:flex-row items-center gap-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:shadow-[0_30px_60px_rgba(0,0,0,0.12)] hover:-translate-y-1 border border-slate-50">
+      {/* Container: Reduced padding from p-7 to p-4/p-5 */}
+      <div className="bg-white rounded-2xl p-4 md:p-5 flex flex-col md:flex-row items-center gap-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 border border-slate-100">
         
-        {/* LEFT: IMAGE SECTION */}
+        {/* LEFT: IMAGE SECTION (Scaled down from 40 to 28/32) */}
         <div className="relative shrink-0">
-          <div className="w-32 h-32 md:w-40 md:h-40 rounded-[28px] overflow-hidden bg-slate-100 ring-4 ring-slate-50">
+          <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden bg-slate-50 border border-slate-100">
             <img
               src={tutor.profilePicture}
               alt={tutor.fullname}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           </div>
-          {/* Minimal Status Indicator */}
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white px-4 py-1 rounded-full shadow-md border border-slate-50 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest whitespace-nowrap">
+          {/* Status Indicator: Tighter padding */}
+          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-white px-2.5 py-0.5 rounded-full shadow-sm border border-slate-100 flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-tight whitespace-nowrap">
               {tutor.totalOpenClasses || 0} Slots
             </span>
           </div>
@@ -29,50 +29,50 @@ export function TutorListingCard({ tutor }: { tutor: any }) {
 
         {/* RIGHT: CONTENT SECTION */}
         <div className="flex-1 flex flex-col w-full">
-          {/* Name & Rating Row */}
-          <div className="flex justify-between items-start mb-2">
-            <div className="flex items-center gap-2">
-              <h3 className="text-2xl font-bold text-[#0F294D] tracking-tight">
+          {/* Name & Rating Row: Scaled down text */}
+          <div className="flex justify-between items-start mb-1">
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-lg font-black text-[#0F294D] tracking-tight">
                 {tutor.fullname}
               </h3>
-              <ShieldCheck size={20} className="text-blue-500 fill-blue-50" />
+              <ShieldCheck size={16} className="text-blue-500" />
             </div>
-            <div className="flex items-center gap-1.5 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
-              <Star size={14} className="text-amber-500 fill-amber-500" />
-              <span className="text-sm font-black text-amber-700">{tutor.rating || '0.0'}</span>
+            <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md">
+              <Star size={12} className="text-amber-500 fill-amber-500" />
+              <span className="text-[12px] font-black text-amber-700">{tutor.rating || '5.0'}</span>
             </div>
           </div>
 
-          {/* Bio: Clean Typography */}
-          <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-6 max-w-lg">
+          {/* Bio: Reduced font size and margin */}
+          <p className="text-slate-500 text-[13px] leading-snug line-clamp-2 mb-3 max-w-lg">
             {tutor.bio || "No biography provided."}
           </p>
 
-          {/* BOTTOM BAR: Metadata & Actions */}
-          <div className="mt-auto pt-6 border-t border-slate-50 flex flex-wrap items-center justify-between gap-4">
-            {/* Stats */}
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 text-slate-500">
-                <Users size={16} />
-                <span className="text-xs font-bold">{tutor.studentsTaught}+ Students</span>
+          {/* BOTTOM BAR: Metadata & Actions (Tighter spacing) */}
+          <div className="mt-auto pt-3 border-t border-slate-50 flex flex-wrap items-center justify-between gap-3">
+            {/* Stats: Smaller icons/text */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5 text-slate-400">
+                <Users size={14} />
+                <span className="text-[11px] font-bold">{tutor.studentsTaught}+</span>
               </div>
-              <div className="flex items-center gap-2 text-slate-500">
-                <MapPin size={16} />
-                <span className="text-xs font-bold">{tutor.location || "Remote"}</span>
+              <div className="flex items-center gap-1.5 text-slate-400">
+                <MapPin size={14} />
+                <span className="text-[11px] font-bold">{tutor.location || "Remote"}</span>
               </div>
             </div>
 
-            {/* CTA Buttons */}
-            <div className="flex items-center gap-3 ml-auto sm:ml-0">
+            {/* CTA Buttons: Compact buttons */}
+            <div className="flex items-center gap-3">
               <Link 
                 to={`/tutor/${tutor.tutorId}`} 
-                className="text-sm font-bold text-slate-400 hover:text-[#0F294D] transition-colors flex items-center gap-1 group/link"
+                className="text-[12px] font-bold text-slate-400 hover:text-blue-600 transition-colors flex items-center gap-0.5 group/link"
               >
-                Profile <ChevronRight size={16} className="group-hover/link:translate-x-1 transition-transform" />
+                Profile <ChevronRight size={14} className="group-hover/link:translate-x-0.5 transition-transform" />
               </Link>
               <button
                 onClick={() => navigate(`/book/${tutor.tutorId}`)}
-                className="bg-[#0F294D] hover:bg-blue-600 text-white px-8 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all shadow-xl shadow-blue-100 active:scale-95"
+                className="bg-[#0066FF] hover:bg-[#0052CC] text-white px-5 py-2 rounded-lg font-bold text-[11px] uppercase tracking-wider transition-all active:scale-95"
               >
                 Book Now
               </button>
