@@ -18,23 +18,42 @@ export function useTutors() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchTutors = async () => {
-      setLoading(true);
-      setError(null);
+    // Using an AbortController to prevent memory leaks if component unmounts
+    const controller = new AbortController();
 
+    const fetchTutors = async () => {
       try {
-        const res = await fetch("https://toturhub-dev.onrender.com/api/v1/public/tutor-cards");
-        if (!res.ok) throw new Error(`Error: ${res.status}`);
-        const data = await res.json();
-        setTutors(data.data || []);
+        setLoading(true);
+        const res = await fetch("https://toturhub-dev.onrender.com/api/v1/public/tutor-cards", {
+          signal: controller.signal
+        });
+
+        if (res.status === 503) {
+          throw new Error("Server is waking up. Please refresh in 30 seconds.");
+        }
+
+        if (!res.ok) {
+          throw new Error(`Server responded with ${res.status}`);
+        }
+
+        const result = await res.json();
+        
+        // Handle both { data: [...] } and raw [...] responses
+        const tutorData = result.data || result;
+        setTutors(Array.isArray(tutorData) ? tutorData : []);
+        
       } catch (err: any) {
-        setError(err.message || "Something went wrong");
+        if (err.name !== 'AbortError') {
+          setError(err.message || "Failed to load tutors");
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchTutors();
+
+    return () => controller.abort();
   }, []);
 
   return { tutors, loading, error };
