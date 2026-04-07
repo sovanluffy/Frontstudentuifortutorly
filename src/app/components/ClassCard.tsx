@@ -1,70 +1,60 @@
-import { Clock, Video, Home, User } from 'lucide-react';
-import { OpenClass } from '../data/mockData';
-import { Button } from './figma/ui/button';
-import { Badge } from './figma/ui/badge';
+import * as React from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/app/components/figma/ui/button";
+
+interface PriceOption {
+  label: string;
+  price: number;
+}
+
+export interface OpenClass {
+  classId: number;
+  title: string;
+  description: string;
+  status: string;
+  tutorId: number;
+  tutorName: string;
+  tutorRating: number;
+  location: string;
+  specificAddress: string;
+  subjects: string[];
+  learningModes: string[];
+  basePrice: number;
+  maxStudents: number;
+  currentStudents: number;
+  priceOptions: PriceOption[];
+  availableSlots: any[];
+  duration?: string;
+}
 
 interface ClassCardProps {
   openClass: OpenClass;
-  onBookClick?: (classId: string) => void;
 }
 
-export function ClassCard({ openClass, onBookClick }: ClassCardProps) {
-  const getModeIcon = () => {
-    switch (openClass.teachingMode) {
-      case 'online':
-        return <Video className="w-4 h-4" />;
-      case 'tutor-home':
-        return <Home className="w-4 h-4" />;
-      case 'student-home':
-        return <User className="w-4 h-4" />;
-    }
-  };
-
-  const getModeLabel = () => {
-    switch (openClass.teachingMode) {
-      case 'online':
-        return 'Online';
-      case 'tutor-home':
-        return "Tutor's Home";
-      case 'student-home':
-        return "Student's Home";
-    }
-  };
+export const ClassCard: React.FC<ClassCardProps> = ({ openClass }) => {
+  const navigate = useNavigate();
 
   return (
-    <div className="bg-card rounded-lg shadow-sm border border-border p-5 hover:shadow-md transition-shadow">
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex-1">
-          <h4 className="mb-2">{openClass.subject}</h4>
-          <p className="text-sm text-muted-foreground mb-2">
-            with {openClass.tutorName}
-          </p>
-        </div>
-        <Badge variant="outline" className="flex items-center gap-1">
-          {getModeIcon()}
-          {getModeLabel()}
-        </Badge>
-      </div>
+    <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm hover:shadow-md transition-all">
+      <h2 className="text-lg font-bold mb-2">{openClass.title}</h2>
+      <p className="text-sm text-slate-600 mb-2">{openClass.description}</p>
 
-      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-        <div className="flex items-center gap-1">
-          <Clock className="w-4 h-4" />
-          <span>{openClass.duration} min</span>
-        </div>
-        <span>{openClass.nextSlot}</span>
-      </div>
+      <p className="text-xs text-slate-400 mb-2">
+        Subjects: {openClass.subjects.join(", ")} | Mode: {openClass.learningModes.join(", ")}
+      </p>
 
-      <div className="flex items-center justify-between pt-3 border-t border-border">
-        <div>
-          <span className="text-xl text-primary">${openClass.price}</span>
-        </div>
+      <div className="flex justify-between items-center">
+        <span className="text-xs text-slate-500">
+          {openClass.currentStudents}/{openClass.maxStudents} students
+        </span>
         <Button
-          variant="outline"
-          onClick={() => onBookClick?.(openClass.id)}
+          size="default"
+          className="h-7 rounded-lg bg-slate-900 text-[11px] font-bold hover:bg-blue-600"
+          onClick={() => navigate(`/classes/${openClass.classId}`)}
         >
-          Book Now
+          Open
         </Button>
       </div>
     </div>
   );
-}
+};

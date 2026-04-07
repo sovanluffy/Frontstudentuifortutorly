@@ -1,12 +1,13 @@
 "use client";
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Button } from "@/app/components/figma/ui/button";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 interface ProfilePublishProps {
   token: string | null;
-  initialPublished: boolean; // ✅ matches prop from parent
+  initialPublished: boolean;
   onRefresh: () => void;
 }
 
@@ -17,6 +18,10 @@ export default function ProfilePublish({
 }: ProfilePublishProps) {
   const [loading, setLoading] = useState(false);
   const [isPublished, setIsPublished] = useState(initialPublished);
+
+  useEffect(() => {
+    setIsPublished(initialPublished);
+  }, [initialPublished]);
 
   const handleTogglePublish = async () => {
     if (!token) {
@@ -39,12 +44,9 @@ export default function ProfilePublish({
       });
 
       if (res.ok) {
-        const message = isPublished
-          ? "Profile unpublished"
-          : "Profile published";
-        toast.success(message);
-        setIsPublished(!isPublished); // update button immediately
-        onRefresh(); // refresh tutor data if needed
+        toast.success(isPublished ? "Profile unpublished" : "Profile published");
+        setIsPublished(!isPublished);
+        onRefresh(); // update parent
       } else {
         toast.error("Action failed");
       }
