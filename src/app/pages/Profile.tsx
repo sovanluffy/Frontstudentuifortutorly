@@ -2,7 +2,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
-import PortfolioEditor from "@/app/components/tutor/PortfolioEditor";
+import  PortfolioEditor  from "@/app/components/tutor/PortfolioEditor";
 import { ProfileDetails } from "@/app/components/tutor/ProfileDetails";
 import { ProfileSidebar } from "@/app/components/tutor/ProfileSidebar";
 export default function TutorProfilePage() {
