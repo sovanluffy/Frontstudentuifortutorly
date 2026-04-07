@@ -1,11 +1,17 @@
+"use client";
 import React, { useState, useMemo } from "react";
-import { 
-  Loader2, Edit3, Upload, Plus, Trash2, 
-  ChevronRight, ChevronLeft, Image as ImageIcon, 
-  Video as VideoIcon, X 
+import {
+  Loader2,
+  Edit3,
+  Upload,
+  Plus,
+  Trash2,
+  ChevronLeft,
+  Image as ImageIcon,
+  Video as VideoIcon
 } from "lucide-react";
 import { Button } from "@/app/components/figma/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/app/components/figma/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/app/components/figma/ui/dialog";
 import { Label } from "@/app/components/figma/ui/label";
 import { toast } from "sonner";
 
@@ -15,7 +21,6 @@ interface PortfolioEditorProps {
   onRefresh: () => void;
 }
 
-// Note: Using "export default" here
 export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEditorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(1);
@@ -25,15 +30,17 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
   const [bio, setBio] = useState(tutor?.bio || "");
   const [education, setEducation] = useState<any[]>(tutor?.education || []);
   const [experience, setExperience] = useState<any[]>(tutor?.experience || []);
-  
+
   // File States
   const [profileImg, setProfileImg] = useState<File | null>(null);
   const [coverImg, setCoverImg] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [certificates, setCertificates] = useState<File[]>([]);
+  const [certificatePreviews, setCertificatePreviews] = useState<string[]>(tutor?.certificateImages || []);
 
   // Previews
   const profilePreview = useMemo(() => profileImg ? URL.createObjectURL(profileImg) : tutor?.profilePicture, [profileImg, tutor]);
+  const coverPreview = useMemo(() => coverImg ? URL.createObjectURL(coverImg) : tutor?.coverImage, [coverImg, tutor]);
   const videoPreview = useMemo(() => videoFile ? URL.createObjectURL(videoFile) : tutor?.introVideoUrl, [videoFile, tutor]);
 
   const handleUpdate = async () => {
@@ -47,9 +54,9 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
       certificates.forEach(file => formData.append("certificates", file));
 
       const res = await fetch(`https://toturhub-dev.onrender.com/api/v1/tutors/profile?publish=false`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, accept: '*/*' },
-        body: formData 
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, accept: "*/*" },
+        body: formData
       });
 
       if (res.ok) {
@@ -57,98 +64,153 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
         setIsOpen(false);
         onRefresh();
       } else {
-        toast.error("Update failed");
+        const errText = await res.text();
+        toast.error("Update failed: " + errText);
       }
-    } catch (err) {
+    } catch {
       toast.error("Connection error");
     } finally {
       setUpdating(false);
     }
   };
 
+  // Handle adding certificates
+  const handleAddCertificates = (files: FileList | null) => {
+    if (!files) return;
+    const newFiles = Array.from(files);
+    setCertificates(prev => [...prev, ...newFiles]);
+    setCertificatePreviews(prev => [...prev, ...newFiles.map(f => URL.createObjectURL(f))]);
+  };
+
+  // Handle removing certificate
+  const handleRemoveCertificate = (index: number) => {
+    setCertificates(prev => prev.filter((_, i) => i !== index));
+    setCertificatePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={(v) => { setIsOpen(v); if(!v) setStep(1); }}>
+    <Dialog open={isOpen} onOpenChange={v => { setIsOpen(v); if (!v) setStep(1); }}>
       <DialogTrigger asChild>
-        <Button className="bg-slate-900 text-white px-10 py-7 rounded-[2rem] shadow-xl hover:bg-black transition-all">
-          <Edit3 size={18} className="mr-2" /> Edit Portfolio
+        <Button className="bg-indigo-600 text-white px-6 py-3 rounded-xl shadow hover:bg-indigo-700 flex items-center gap-2">
+          <Edit3 size={16} /> Edit Portfolio
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-3xl rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl">
+
+      <DialogContent className="sm:max-w-2xl rounded-2xl p-4 overflow-hidden shadow-xl">
+        {/* Accessibility */}
+        <DialogTitle>Edit Tutor Profile</DialogTitle>
+        <DialogDescription>Update your biography, education, experience, media, and certificates.</DialogDescription>
+
         {/* Header */}
-        <div className="bg-slate-50 px-10 py-8 border-b flex justify-between items-center">
+        <div className="flex justify-between items-center border-b px-4 py-3">
           <div>
-            <h2 className="text-2xl font-black">Edit Portal</h2>
-            <p className="text-[10px] uppercase font-black text-indigo-500">Step {step} of 2</p>
-          </div>
-          <div className="flex gap-2">
-            <div className={`h-2 w-12 rounded-full transition-all ${step >= 1 ? 'bg-indigo-600' : 'bg-indigo-100'}`} />
-            <div className={`h-2 w-12 rounded-full transition-all ${step >= 2 ? 'bg-indigo-600' : 'bg-indigo-100'}`} />
+            <h2 className="text-lg font-bold">Edit Profile</h2>
+            <p className="text-xs text-indigo-500 font-semibold">Step {step} of 2</p>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-10 max-h-[60vh] overflow-y-auto">
+        <div className="p-4 max-h-[60vh] overflow-y-auto space-y-4">
           {step === 1 ? (
-            <div className="space-y-8 animate-in fade-in duration-300">
-              <div className="space-y-3">
-                <Label className="text-[10px] font-black uppercase text-slate-400">Biography</Label>
-                <textarea 
-                  className="w-full p-5 border-2 rounded-[1.5rem] h-32 bg-slate-50/50 outline-none focus:border-indigo-500" 
-                  value={bio} 
-                  onChange={(e) => setBio(e.target.value)} 
+            <div className="space-y-4 animate-fade-in">
+              {/* Bio */}
+              <div className="space-y-1">
+                <Label className="text-xs font-bold uppercase text-gray-500">Biography</Label>
+                <textarea
+                  className="w-full p-2 border rounded-lg text-sm resize-none"
+                  value={bio}
+                  onChange={e => setBio(e.target.value)}
+                  rows={4}
                 />
               </div>
-              
-              <div className="space-y-4">
+
+              {/* Education */}
+              <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label className="text-[10px] font-black uppercase text-slate-400">Education</Label>
-                  <Button variant="ghost" onClick={() => setEducation([...education, {school:"", degree:"", year:""}])}>
-                    <Plus size={16}/>
+                  <Label className="text-xs font-bold uppercase text-gray-500">Education</Label>
+                  <Button variant="ghost" size="sm" onClick={() => setEducation([...education, { school: "", degree: "", year: "" }])}>
+                    <Plus size={14} />
                   </Button>
                 </div>
                 {education.map((edu, i) => (
-                  <div key={i} className="grid grid-cols-12 gap-2 bg-indigo-50/50 p-3 rounded-2xl">
-                    <input className="col-span-5 p-2 rounded-xl border text-xs" placeholder="School" value={edu.school} onChange={(e) => { const n = [...education]; n[i].school = e.target.value; setEducation(n); }} />
-                    <input className="col-span-4 p-2 rounded-xl border text-xs" placeholder="Degree" value={edu.degree} onChange={(e) => { const n = [...education]; n[i].degree = e.target.value; setEducation(n); }} />
-                    <input className="col-span-2 p-2 rounded-xl border text-xs text-center" placeholder="Year" value={edu.year} onChange={(e) => { const n = [...education]; n[i].year = e.target.value; setEducation(n); }} />
-                    <button className="col-span-1 text-red-400" onClick={() => setEducation(education.filter((_, idx) => idx !== i))}><Trash2 size={16}/></button>
+                  <div key={i} className="grid grid-cols-12 gap-1 bg-gray-100 p-2 rounded-lg text-xs items-center">
+                    <input className="col-span-5 p-1 border rounded" placeholder="School" value={edu.school} onChange={e => { const n = [...education]; n[i].school = e.target.value; setEducation(n); }} />
+                    <input className="col-span-4 p-1 border rounded" placeholder="Degree" value={edu.degree} onChange={e => { const n = [...education]; n[i].degree = e.target.value; setEducation(n); }} />
+                    <input className="col-span-2 p-1 border rounded text-center" placeholder="Year" value={edu.year} onChange={e => { const n = [...education]; n[i].year = e.target.value; setEducation(n); }} />
+                    <button className="col-span-1 text-red-500" onClick={() => setEducation(education.filter((_, idx) => idx !== i))}><Trash2 size={14} /></button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Experience */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label className="text-xs font-bold uppercase text-gray-500">Experience</Label>
+                  <Button variant="ghost" size="sm" onClick={() => setExperience([...experience, { company: "", role: "", duration: "" }])}>
+                    <Plus size={14} />
+                  </Button>
+                </div>
+                {experience.map((exp, i) => (
+                  <div key={i} className="grid grid-cols-12 gap-1 bg-gray-100 p-2 rounded-lg text-xs items-center">
+                    <input className="col-span-4 p-1 border rounded" placeholder="Company" value={exp.company} onChange={e => { const n = [...experience]; n[i].company = e.target.value; setExperience(n); }} />
+                    <input className="col-span-4 p-1 border rounded" placeholder="Role" value={exp.role} onChange={e => { const n = [...experience]; n[i].role = e.target.value; setExperience(n); }} />
+                    <input className="col-span-3 p-1 border rounded text-center" placeholder="Duration" value={exp.duration} onChange={e => { const n = [...experience]; n[i].duration = e.target.value; setExperience(n); }} />
+                    <button className="col-span-1 text-red-500" onClick={() => setExperience(experience.filter((_, idx) => idx !== i))}><Trash2 size={14} /></button>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
-            <div className="space-y-8 animate-in slide-in-from-right-8 duration-500">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="relative group aspect-square rounded-[2rem] overflow-hidden border-4 bg-slate-50">
+            <div className="space-y-4 animate-fade-in">
+              {/* Profile & Cover */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="relative group aspect-square rounded-lg overflow-hidden border bg-gray-50">
                   <img src={profilePreview} className="w-full h-full object-cover" />
-                  <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => setProfileImg(e.target.files?.[0] || null)} />
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><Upload className="text-white" /></div>
+                  <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setProfileImg(e.target.files?.[0] || null)} />
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><Upload className="text-white" /></div>
                 </div>
-                <div className="relative group aspect-square rounded-[2rem] overflow-hidden border-4 bg-slate-50">
-                  {coverImg ? <img src={URL.createObjectURL(coverImg)} className="w-full h-full object-cover" /> : <div className="flex h-full items-center justify-center"><ImageIcon className="text-slate-200" size={40}/></div>}
-                  <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => setCoverImg(e.target.files?.[0] || null)} />
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><Upload className="text-white" /></div>
+                <div className="relative group aspect-square rounded-lg overflow-hidden border bg-gray-50">
+                  {coverPreview ? <img src={coverPreview} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full"><ImageIcon size={24} className="text-gray-300" /></div>}
+                  <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setCoverImg(e.target.files?.[0] || null)} />
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><Upload className="text-white" /></div>
                 </div>
               </div>
-              <div className="relative rounded-[2rem] overflow-hidden bg-slate-900 aspect-video">
-                {videoPreview ? <video src={videoPreview} className="w-full h-full object-cover" controls /> : <div className="flex h-full items-center justify-center text-slate-500"><VideoIcon /></div>}
-                <input type="file" accept="video/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => setVideoFile(e.target.files?.[0] || null)} />
+
+              {/* Intro Video */}
+              <div className="relative rounded-lg overflow-hidden bg-gray-900 aspect-video">
+                {videoPreview ? <video src={videoPreview} className="w-full h-full object-cover" controls /> : <div className="flex h-full items-center justify-center text-gray-400"><VideoIcon /></div>}
+                <input type="file" accept="video/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setVideoFile(e.target.files?.[0] || null)} />
               </div>
+
+              {/* Certificates */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-gray-500">Certificates</Label>
+                <div className="flex flex-wrap gap-2">
+                  {certificatePreviews.map((url, i) => (
+                    <div key={i} className="relative w-24 h-24 rounded-lg overflow-hidden border">
+                      <img src={url} className="w-full h-full object-cover" />
+                      <button className="absolute top-1 right-1 text-red-500 bg-white rounded-full p-1" onClick={() => handleRemoveCertificate(i)}><Trash2 size={14} /></button>
+                    </div>
+                  ))}
+                  <label className="w-24 h-24 flex items-center justify-center border rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                    <input type="file" multiple className="hidden" onChange={e => handleAddCertificates(e.target.files)} />
+                    <Plus size={20} />
+                  </label>
+                </div>
+              </div>
+
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-10 bg-slate-50 border-t flex gap-4">
-          {step === 2 && <Button variant="outline" className="flex-1 py-8 rounded-[2rem]" onClick={() => setStep(1)}><ChevronLeft className="mr-2" /> Back</Button>}
-          <Button 
-            className={`flex-1 py-8 rounded-[2rem] text-white font-black shadow-xl ${step === 1 ? 'bg-indigo-600' : 'bg-emerald-600'}`} 
-            onClick={step === 1 ? () => setStep(2) : handleUpdate} 
-            disabled={updating}
-          >
-            {updating ? <Loader2 className="animate-spin" /> : step === 1 ? "Next Step" : "Confirm Update"}
+        <div className="flex gap-2 p-4 border-t">
+          {step === 2 && <Button variant="outline" className="flex-1" onClick={() => setStep(1)}><ChevronLeft size={14} /> Back</Button>}
+          <Button className={`flex-1 text-white ${step === 1 ? 'bg-indigo-600' : 'bg-green-600'}`} onClick={step === 1 ? () => setStep(2) : handleUpdate} disabled={updating}>
+            {updating ? <Loader2 className="animate-spin" /> : step === 1 ? "Next" : "Save"}
           </Button>
         </div>
+
       </DialogContent>
     </Dialog>
   );

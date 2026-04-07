@@ -19,67 +19,98 @@ interface ProfileDetailsProps {
 
 export function ProfileDetails({ tutor }: ProfileDetailsProps) {
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-6">
       
-      {/* BIO SECTION */}
-      <section className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
-        <Quote className="absolute -top-2 -left-2 text-slate-50 w-24 h-24 -z-0" />
-        <div className="relative z-10">
-          <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] mb-8">
-            Professional Profile
-          </h3>
-          <p className="text-slate-700 leading-[2] text-xl font-medium italic opacity-90">
-            "{tutor?.bio || "No biography provided yet."}"
+      {/* BIO */}
+      <section className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-2 mb-3 text-slate-500">
+          <Quote size={16} />
+          <p className="text-xs font-semibold uppercase tracking-wide">
+            Profile
           </p>
         </div>
+
+        <p className="text-sm text-slate-700 leading-relaxed">
+          {tutor?.bio || "No biography provided yet."}
+        </p>
       </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+      {/* GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        {/* EDUCATION SECTION */}
-        <section className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
-          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-10 flex items-center gap-3">
-            <GraduationCap size={20} className="text-indigo-500" /> Education
-          </h3>
-          
+        {/* EDUCATION */}
+        <section className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <GraduationCap size={16} className="text-indigo-500" />
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+              Education
+            </p>
+          </div>
+
           {tutor?.education && tutor.education.length > 0 ? (
-            tutor.education.map((edu, i) => (
-              <div key={i} className="border-l-4 border-indigo-50 pl-6 mb-10 last:mb-0 relative">
-                <div className="absolute -left-[6px] top-0 w-2.5 h-2.5 rounded-full bg-indigo-500" />
-                <p className="font-black text-slate-900 text-lg leading-tight mb-1">
-                  {edu.degree}
-                </p>
-                <p className="text-slate-500 text-sm font-medium">{edu.school}</p>
-                <p className="text-[10px] font-black text-indigo-400 uppercase mt-2 tracking-widest">
-                  {edu.year}
-                </p>
-              </div>
-            ))
+            <div className="space-y-4">
+              {tutor.education.map((edu, i) => (
+                <div key={i} className="flex gap-3">
+                  
+                  {/* timeline dot */}
+                  <div className="mt-1 w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">
+                      {edu.degree}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {edu.school}
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {edu.year}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
-            <p className="text-slate-400 text-sm italic">No education history added.</p>
+            <p className="text-slate-400 text-sm italic">
+              No education history added.
+            </p>
           )}
         </section>
 
-        {/* EXPERIENCE SECTION */}
-        <section className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
-          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-10 flex items-center gap-3">
-            <Briefcase size={20} className="text-indigo-500" /> Experience
-          </h3>
-          
+        {/* EXPERIENCE */}
+        <section className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Briefcase size={16} className="text-indigo-500" />
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+              Experience
+            </p>
+          </div>
+
           {tutor?.experience && tutor.experience.length > 0 ? (
-            tutor.experience.map((exp, i) => (
-              <div key={i} className="border-l-4 border-slate-50 pl-6 mb-10 last:mb-0">
-                <p className="font-black text-slate-900 text-lg leading-tight mb-1">
-                  {exp.role}
-                </p>
-                <p className="text-slate-500 text-sm font-medium">{exp.company}</p>
-                <p className="text-[10px] font-bold text-slate-400 uppercase mt-2">
-                  {exp.duration}
-                </p>
-              </div>
-            ))
+            <div className="space-y-4">
+              {tutor.experience.map((exp, i) => (
+                <div key={i} className="flex gap-3">
+                  
+                  {/* timeline dot */}
+                  <div className="mt-1 w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">
+                      {exp.role}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {exp.company}
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {exp.duration}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
-            <p className="text-slate-400 text-sm italic">No experience history added.</p>
+            <p className="text-slate-400 text-sm italic">
+              No experience history added.
+            </p>
           )}
         </section>
 
