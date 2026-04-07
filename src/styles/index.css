@@ -11,4 +11,11 @@
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
   }
+  .tab-trigger {
+  @apply rounded-none bg-transparent px-0 text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 shadow-none border-b-2 border-transparent transition-all;
+}
+
+.tab-trigger[data-state="active"] {
+  @apply border-blue-600 text-blue-600;
+}
 }

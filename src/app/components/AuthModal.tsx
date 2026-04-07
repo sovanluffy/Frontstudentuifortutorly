@@ -1,25 +1,26 @@
 import * as React from "react";
-import { X, Mail, Lock, User, Phone, MapPin, Camera, Loader2, ChevronDown, AlertCircle } from "lucide-react";
+import { X, Mail, Lock, User, Phone, MapPin, Camera, Loader2, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import Cookies from "js-cookie";
 
+// 1. Updated Interface to match your API response
 interface Location {
-  id: number; // Changed to 'id' to match standard Backend naming
+  locationId: number;
   city: string;
   district: string;
+  fullAddress: string;
 }
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onAuthSuccess: () => void;
 }
 
-export function AuthModal({ isOpen, onClose }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
   const [mode, setMode] = React.useState<"login" | "signup">("login");
   const [loading, setLoading] = React.useState(false);
-  const [locLoading, setLocLoading] = React.useState(false);
-
-  // Data states
   const [locations, setLocations] = React.useState<Location[]>([]);
 
   // Form states
@@ -31,106 +32,116 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [locationId, setLocationId] = React.useState<string>("");
   const [avatar, setAvatar] = React.useState<File | null>(null);
 
+  // Correct Base URL based on your Swagger test
   const API_BASE = "https://toturhub-dev.onrender.com/api/v1";
 
-  // --- 1. FETCH LOCATIONS (With Error Handling) ---
+  // --- FETCH LOCATIONS (Corrected Endpoint) ---
   React.useEffect(() => {
     if (isOpen && mode === "signup") {
       const fetchLocations = async () => {
-        setLocLoading(true);
         try {
-          const res = await fetch(`${API_BASE}/public/locations`);
+          // Calling the exact URL from your successful Swagger test
+          const res = await fetch(`${API_BASE}/locations`, {
+            method: "GET",
+            headers: { "accept": "*/*" }
+          });
           
-          if (res.status === 503) {
-            toast.error("Server is waking up, please wait a moment...");
-            return;
+          if (!res.ok) throw new Error("Failed to fetch locations");
+          
+          const data = await res.json();
+          
+          // API returns a direct array: [ {locationId: 1...}, ... ]
+          const dataArray = Array.isArray(data) ? data : [];
+          setLocations(dataArray);
+          
+          if (dataArray.length > 0) {
+            setLocationId(dataArray[0].locationId.toString());
           }
-
-          const result = await res.json();
-          // Logic to handle wrapped or unwrapped data
-          const locs = result.data || result; 
-          setLocations(Array.isArray(locs) ? locs : []);
         } catch (err) {
           console.error("Location fetch error:", err);
-          toast.error("Could not connect to server");
-        } finally {
-          setLocLoading(false);
+          setLocations([]);
         }
       };
       fetchLocations();
     }
   }, [isOpen, mode]);
 
-  // --- 2. EXECUTE LOGIN ---
+  // --- LOGIN LOGIC ---
   const executeLogin = async (loginEmail: string, loginPass: string) => {
-    try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginEmail, password: loginPass }),
-      });
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: loginEmail, password: loginPass }),
+    });
 
-      const result = await res.json();
-      if (res.ok) {
-        const token = result.data?.token || result.token;
-        localStorage.setItem("token", token);
-        return true;
-      }
-      toast.error(result.message || "Invalid credentials");
-      return false;
-    } catch (err) {
-      toast.error("Server is currently unavailable (503)");
-      return false;
+    const result = await res.json();
+
+    if (res.ok && result.token) {
+      // Set Cookies for middleware/server-side
+      Cookies.set("token", result.token, { expires: 7, secure: true, sameSite: "Strict" });
+      // Set LocalStorage for Navbar state tracking
+      localStorage.setItem("token", result.token);
+      localStorage.setItem("user", JSON.stringify(result));
+      
+      onAuthSuccess(); // Tell Navbar to change "Sign in" to "Profile"
+      return true;
     }
+    return false;
   };
 
-  // --- 3. HANDLE LOGIN ---
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const success = await executeLogin(email, password);
-    if (success) {
-      toast.success("Welcome back!");
-      onClose();
-      window.location.reload(); // Refresh to update Auth state globally
+    try {
+      const success = await executeLogin(email, password);
+      if (success) {
+        toast.success("Welcome back!");
+        onClose();
+      } else {
+        toast.error("Invalid credentials");
+      }
+    } catch (err) {
+      toast.error("Connection error");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  // --- 4. HANDLE SIGNUP ---
+  // --- SIGNUP LOGIC ---
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!locationId) return toast.error("Please select a location");
 
     setLoading(true);
     const formData = new FormData();
-    
-    // Blob required for Multipart JSON in Spring Boot
-    const requestBlob = new Blob([JSON.stringify({
-      fullname, email, password, phone, address,
+    const requestPayload = JSON.stringify({
+      fullname,
+      email,
+      password,
+      phone,
+      address,
       locationId: parseInt(locationId),
-    })], { type: "application/json" });
+    });
 
-    formData.append("request", requestBlob);
+    formData.append("request", requestPayload);
     if (avatar) formData.append("avatar", avatar);
 
     try {
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
-        body: formData, // No Content-Type header! Browser sets it for FormData
+        body: formData,
       });
 
       if (res.ok) {
-        toast.success("Registration successful!");
-        await executeLogin(email, password);
-        onClose();
-        window.location.reload();
+        toast.success("Account created! Logging you in...");
+        const loginSuccess = await executeLogin(email, password);
+        if (loginSuccess) onClose();
       } else {
         const result = await res.json();
         toast.error(result.message || "Registration failed");
       }
     } catch (err) {
-      toast.error("Connection failed. Server might be down.");
+      toast.error("Server error");
     } finally {
       setLoading(false);
     }
@@ -140,84 +151,104 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" />
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+          />
 
-          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-[800px] bg-white rounded-[24px] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-slate-100">
-            
-            {/* Left Decor */}
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+            className="relative w-full max-w-[800px] bg-white rounded-[24px] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-slate-100"
+          >
+            {/* LEFT: Branding */}
             <div className="hidden md:flex w-[280px] bg-slate-50 p-8 flex-col justify-between border-r border-slate-100 shrink-0">
-              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">T</div>
-              <h3 className="text-xl font-black text-slate-900 leading-tight">Master new skills with expert tutors.</h3>
-              <img src="https://illustrations.popsy.co/amber/student-going-to-school.svg" className="w-full opacity-60" alt="art" />
+              <div>
+                <div className="w-8 h-8 bg-blue-600 rounded-lg mb-4 shadow-md" />
+                <h3 className="text-lg font-black text-slate-900 leading-tight">Start your learning journey today.</h3>
+              </div>
+              <img src="https://illustrations.popsy.co/amber/student-going-to-school.svg" className="w-full opacity-50 grayscale" alt="art" />
             </div>
 
-            {/* Right Form */}
-            <div className="flex-1 p-6 md:p-10 max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-end mb-2">
-                <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X size={20} /></button>
+            {/* RIGHT: Form */}
+            <div className="flex-1 p-6 md:p-10 max-h-[85vh] overflow-y-auto">
+              <div className="flex justify-end mb-1">
+                <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors">
+                  <X size={18} />
+                </button>
               </div>
 
-              <div className="max-w-[340px] mx-auto">
-                <h2 className="text-2xl font-black text-slate-900 mb-1">{mode === "login" ? "Sign In" : "Register"}</h2>
-                <p className="text-slate-500 text-sm mb-8">{mode === "login" ? "Access your learning dashboard." : "Create your account in seconds."}</p>
+              <div className="max-w-[320px] mx-auto">
+                <h2 className="text-xl font-black text-slate-900 mb-1">
+                  {mode === "login" ? "Welcome Back" : "Create Account"}
+                </h2>
+                <p className="text-slate-400 text-[12px] mb-6">
+                  {mode === "login" ? "Enter your credentials." : "Join our community for free."}
+                </p>
 
-                <form onSubmit={mode === "login" ? handleLogin : handleSignup} className="space-y-4">
+                <form onSubmit={mode === "login" ? handleLogin : handleSignup} className="space-y-3">
+                  {mode === "signup" && (
+                    <div className="flex justify-center mb-4">
+                      <label className="relative group cursor-pointer">
+                        <div className="w-16 h-16 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden transition-all group-hover:border-blue-400">
+                          {avatar ? <img src={URL.createObjectURL(avatar)} className="w-full h-full object-cover" /> : <Camera className="text-slate-300" size={20} />}
+                        </div>
+                        <input type="file" className="hidden" accept="image/*" onChange={(e) => setAvatar(e.target.files?.[0] || null)} />
+                      </label>
+                    </div>
+                  )}
+
+                  {mode === "signup" && (
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <input required type="text" placeholder="Full Name" value={fullname} onChange={(e) => setFullname(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-slate-50 rounded-xl outline-none text-[13px] border border-transparent focus:border-blue-500/20" />
+                    </div>
+                  )}
+
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <input required type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-slate-50 rounded-xl outline-none text-[13px] border border-transparent focus:border-blue-500/20" />
+                  </div>
+
                   {mode === "signup" && (
                     <>
-                      <div className="flex justify-center mb-6">
-                        <label className="relative cursor-pointer group">
-                          <div className="w-20 h-20 rounded-2xl bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden group-hover:border-blue-500 transition-all">
-                            {avatar ? <img src={URL.createObjectURL(avatar)} className="w-full h-full object-cover" /> : <Camera className="text-slate-400" />}
-                          </div>
-                          <input type="file" className="hidden" accept="image/*" onChange={(e) => setAvatar(e.target.files?.[0] || null)} />
-                        </label>
+                      <div className="relative">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input required type="tel" placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-slate-50 rounded-xl outline-none text-[13px]" />
                       </div>
                       <div className="relative">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <input required placeholder="Full Name" value={fullname} onChange={(e) => setFullname(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-transparent focus:border-blue-500 outline-none transition-all text-sm" />
+                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <select 
+                          required 
+                          value={locationId} 
+                          onChange={(e) => setLocationId(e.target.value)} 
+                          className="w-full pl-10 pr-8 py-2.5 bg-slate-50 rounded-xl outline-none text-[13px] appearance-none"
+                        >
+                          <option value="">Select Location</option>
+                          {locations.map((loc) => (
+                            <option key={loc.locationId} value={loc.locationId}>
+                              {loc.city} - {loc.district}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                       </div>
                     </>
                   )}
 
                   <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input required type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-transparent focus:border-blue-500 outline-none transition-all text-sm" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <input required type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-slate-50 rounded-xl outline-none text-[13px]" />
                   </div>
 
-                  {mode === "signup" && (
-                    <div className="grid grid-cols-1 gap-4">
-                      <div className="relative">
-                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <input required placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-transparent focus:border-blue-500 outline-none transition-all text-sm" />
-                      </div>
-                      <div className="relative">
-                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <select required value={locationId} onChange={(e) => setLocationId(e.target.value)} className="w-full pl-12 pr-10 py-3 bg-slate-50 rounded-xl border border-transparent focus:border-blue-500 outline-none appearance-none transition-all text-sm">
-                          <option value="">{locLoading ? "Loading..." : "Select Location"}</option>
-                          {locations.map(loc => (
-                            <option key={loc.id} value={loc.id}>{loc.city} - {loc.district}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input required type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-transparent focus:border-blue-500 outline-none transition-all text-sm" />
-                  </div>
-
-                  <button disabled={loading} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-blue-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-slate-200">
-                    {loading ? <Loader2 className="animate-spin" size={20} /> : (mode === "login" ? "Sign In" : "Create Account")}
+                  <button disabled={loading} className="w-full bg-slate-900 text-white py-3 rounded-xl font-black text-[13px] hover:bg-blue-600 transition-all flex items-center justify-center gap-2">
+                    {loading ? <Loader2 className="animate-spin" size={16} /> : (mode === "login" ? "Sign In" : "Register Now")}
                   </button>
                 </form>
 
-                <div className="mt-8 text-center">
-                  <button onClick={() => setMode(mode === "login" ? "signup" : "login")} className="text-sm font-semibold text-blue-600 hover:text-blue-700">
-                    {mode === "login" ? "New to TutorHub? Sign Up" : "Already have an account? Sign In"}
-                  </button>
-                </div>
+                <button onClick={() => setMode(mode === "login" ? "signup" : "login")} className="w-full mt-4 text-[12px] font-bold text-blue-600">
+                  {mode === "login" ? "New here? Create an account" : "Already have an account? Log in"}
+                </button>
               </div>
             </div>
           </motion.div>

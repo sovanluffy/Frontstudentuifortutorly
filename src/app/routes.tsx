@@ -5,7 +5,7 @@ import { TutorListing } from "./pages/TutorListing";
 import { Favorites } from "./pages/Favorites";
 import { Booking } from "./pages/Booking";
 import { MyBookings } from "./pages/MyBookings";
-import { Profile } from "./pages/Profile";
+import  Profile  from "./pages/Profile";
 import { NotFound } from "./pages/NotFound";
 import TutorDetailPage from "./pages/TutorDetailPage";
 import Login from "@/app/components/auth/Login"; 
