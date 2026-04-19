@@ -1,82 +1,112 @@
 import { createBrowserRouter } from "react-router-dom";
 
-// Layout & Pages
+// ================= LAYOUT =================
 import { Layout } from "./components/Layout";
+
+// ================= PAGES =================
 import { Home } from "./pages/Home";
 import { TutorListing } from "./pages/TutorListing";
 import { Favorites } from "./pages/Favorites";
 import { Booking } from "./pages/Booking";
 import { MyBookings } from "./pages/MyBookings";
 import Profile from "./pages/Profile";
-import TutorDetailPage from "./pages/TutorDetailPage"; 
-import ClassDetailPage from "./pages/ClassDetailPage"; // Import the new detail page
+import TutorDetailPage from "./pages/TutorDetailPage";
+import ClassDetailPage from "./pages/ClassDetailPage";
 import { NotFound } from "./pages/NotFound";
 
-// Auth
+// ================= AUTH =================
 import Login from "@/app/components/auth/Login";
 import Signup from "@/app/components/auth/Signup";
 
-export const router = createBrowserRouter([
-  // --- AUTH ROUTES (No Navbar) ---
-  // These sit outside the Layout because they usually don't need the main Nav
-  { path: "/login", Component: Login },
-  { path: "/signup", Component: Signup },
+// ================= TUTOR CREATE CLASS =================
+import CreateOpenClassPage from "@/app/components/tutor/create-class/create-class";
 
-  // --- MAIN APP ROUTES (With Navbar) ---
+export const router = createBrowserRouter([
+  // ================= AUTH ROUTES =================
+  {
+    path: "/login",
+    Component: Login,
+  },
+  {
+    path: "/signup",
+    Component: Signup,
+  },
+
+  // ================= MAIN APP =================
   {
     path: "/",
-    Component: Layout, // This provides the context for useNavigate() in child components
+    Component: Layout,
     children: [
-      { 
-        index: true, 
-        Component: Home 
-      },
-      { 
-        path: "search", 
-        Component: TutorListing 
-      },
-      { 
-        path: "favorites", 
-        Component: Favorites 
-      },
-      { 
-        path: "booking", 
-        Component: Booking 
-      },
-      { 
-        path: "bookings", 
-        Component: MyBookings 
-      },
-      { 
-        path: "profile", 
-        Component: Profile 
-      },
-      
-      // --- NEW: CLASS DETAIL ROUTE ---
-      { 
-        path: "classes/:id", 
-        Component: ClassDetailPage 
+      // HOME
+      {
+        index: true,
+        Component: Home,
       },
 
-      // --- TUTOR DETAIL ROUTE WITH LOADER ---
+      // SEARCH
+      {
+        path: "search",
+        Component: TutorListing,
+      },
+
+      // FAVORITES
+      {
+        path: "favorites",
+        Component: Favorites,
+      },
+
+      // BOOKING
+      {
+        path: "booking",
+        Component: Booking,
+      },
+
+      // MY BOOKINGS
+      {
+        path: "bookings",
+        Component: MyBookings,
+      },
+
+      // PROFILE
+      {
+        path: "profile",
+        Component: Profile,
+      },
+
+      // ================= CREATE CLASS (NEW) =================
+      {
+        path: "create-class",
+        Component: CreateOpenClassPage,
+      },
+
+      // ================= CLASS DETAIL =================
+      {
+        path: "classes/:id",
+        Component: ClassDetailPage,
+      },
+
+      // ================= TUTOR DETAIL =================
       {
         path: "tutor/:tutorId",
         loader: async ({ params }) => {
           const res = await fetch(
             `https://toturhub-dev.onrender.com/api/v1/tutors/${params.tutorId}`
           );
-          if (!res.ok) throw new Error("Tutor profile not found");
+
+          if (!res.ok) {
+            throw new Error("Tutor profile not found");
+          }
+
           return res.json();
         },
         Component: TutorDetailPage,
       },
 
-      // --- 404 FALLBACK ---
-      // This is now inside the Layout, so useNavigate() works inside NotFound
-      { 
-        path: "*", 
-        Component: NotFound 
-      }, 
+      // ================= 404 =================
+      {
+        path: "*",
+        Component: NotFound,
+      },
     ],
   },
 ]);

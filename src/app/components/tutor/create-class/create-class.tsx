@@ -1,53 +1,63 @@
 "use client";
 
-import React, { useState } from "react";
-import { Loader2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/app/components/figma/ui/button";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
-interface TimeRange {
+/* ================= TYPES ================= */
+interface Subject {
+  id: number;
+  name: string;
+}
+
+interface Location {
+  locationId: number;
+  city: string;
+  district: string;
+  fullAddress: string;
+}
+
+interface DayTimeSlot {
+  day: string;
   startTime: string;
   endTime: string;
 }
 
-interface Schedule {
-  scheduleType: "weekly" | "special-session";
-  startDate: string;
-  endDate: string;
-  timeRanges: TimeRange[];
-}
+/* ================= PAGE ================= */
+export default function CreateOpenClassPage() {
+  const navigate = useNavigate();
 
-export default function CreateClassPage() {
-  // Pre-fill state with your JSON data
-  const [title, setTitle] = useState("Intro to Algebra");
+  /* ================= STATE ================= */
+  const [title, setTitle] = useState("Math Class for Grade 10");
   const [description, setDescription] = useState(
-    "A beginner-friendly course covering basic algebra concepts, equations, and functions."
+    "Basic to advanced algebra lessons"
   );
-  const [subjectIds, setSubjectIds] = useState<number[]>([1, 2]);
-  const [learningModes, setLearningModes] = useState<string[]>(["ONLINE"]);
-  const [locationId, setLocationId] = useState(1);
+
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+
+  const [subjectIds, setSubjectIds] = useState<number[]>([]);
+  const [locationId, setLocationId] = useState<number | null>(null);
+
+  const [status, setStatus] = useState("OPEN");
+
   const [specificAddress, setSpecificAddress] = useState(
-    "123 Main Street, Phnom Penh, Cambodia"
+    "Street 123, Phnom Penh"
   );
-  const [basePrice, setBasePrice] = useState(50);
-  const [maxStudents, setMaxStudents] = useState(20);
-  const [schedules, setSchedules] = useState<Schedule[]>([
-    {
-      scheduleType: "weekly",
-      startDate: "2026-04-10",
-      endDate: "2026-06-30",
-      timeRanges: [
-        { startTime: "09:00", endTime: "11:00" },
-        { startTime: "14:00", endTime: "16:00" },
-      ],
-    },
-    {
-      scheduleType: "special-session",
-      startDate: "2026-05-15",
-      endDate: "2026-05-15",
-      timeRanges: [{ startTime: "10:00", endTime: "12:00" }],
-    },
+
+  const [basePrice, setBasePrice] = useState(15.5);
+  const [maxStudents, setMaxStudents] = useState(10);
+
+  const [learningModes] = useState(["ONLINE"]);
+
+  const [dayTimeSlots, setDayTimeSlots] = useState<DayTimeSlot[]>([
+    { day: "MONDAY", startTime: "09:00", endTime: "11:00" },
   ]);
+
+  const [image, setImage] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
 
@@ -55,204 +65,305 @@ export default function CreateClassPage() {
     typeof document !== "undefined"
       ? document.cookie
           .split("; ")
-          .find((row) => row.startsWith("token="))
+          .find((r) => r.startsWith("token="))
           ?.split("=")[1]
       : null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token) return toast.error("No auth token found");
-    if (!title || !description) return toast.error("Title and description are required");
+  /* ================= LOAD ================= */
+  useEffect(() => {
+    fetch("https://toturhub-dev.onrender.com/api/subjects")
+      .then((r) => r.json())
+      .then(setSubjects);
+
+    fetch("https://toturhub-dev.onrender.com/api/v1/locations")
+      .then((r) => r.json())
+      .then(setLocations);
+  }, []);
+
+  /* ================= IMAGE ================= */
+  const handleImageChange = (file: File | null) => {
+    setImage(file);
+
+    if (preview) URL.revokeObjectURL(preview);
+
+    if (file) {
+      setPreview(URL.createObjectURL(file));
+    } else {
+      setPreview(null);
+    }
+  };
+
+  /* ================= SCHEDULE ================= */
+  const dayOptions = [
+    "MONDAY",
+    "TUESDAY",
+    "WEDNESDAY",
+    "THURSDAY",
+    "FRIDAY",
+    "SATURDAY",
+    "SUNDAY",
+  ];
+
+  const addSlot = () => {
+    setDayTimeSlots([
+      ...dayTimeSlots,
+      { day: "MONDAY", startTime: "09:00", endTime: "11:00" },
+    ]);
+  };
+
+  const updateSlot = (i: number, f: keyof DayTimeSlot, v: string) => {
+    const copy = [...dayTimeSlots];
+    copy[i][f] = v;
+    setDayTimeSlots(copy);
+  };
+
+  const removeSlot = (i: number) => {
+    setDayTimeSlots(dayTimeSlots.filter((_, x) => x !== i));
+  };
+
+  /* ================= SUBMIT ================= */
+  const handleSubmit = async () => {
+    if (!token) return toast.error("No token");
+    if (!locationId) return toast.error("Select location");
 
     setLoading(true);
+
     try {
-      const res = await fetch("https://toturhub-dev.onrender.com/api/v1/open-classes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title,
-          description,
-          subjectIds,
-          learningModes,
-          locationId,
-          specificAddress,
-          basePrice,
-          maxStudents,
-          schedules,
-        }),
-      });
+      const formData = new FormData();
+
+      const payload = {
+        title,
+        description,
+        subjectIds,
+        status,
+        locationId,
+        specificAddress,
+        basePrice,
+        maxStudents,
+        learningModes,
+        dayTimeSlots,
+      };
+
+      formData.append("data", JSON.stringify(payload));
+      if (image) formData.append("image", image);
+
+      const res = await fetch(
+        "https://toturhub-dev.onrender.com/api/v1/open-classes",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
 
       if (res.ok) {
         toast.success("Class created successfully!");
-        handleReset();
+        setTimeout(() => navigate("/profile"), 700);
       } else {
         toast.error("Failed to create class");
       }
     } catch (err) {
-      toast.error("Connection error");
-      console.error(err);
+      toast.error("Server error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleReset = () => {
-    setTitle("Intro to Algebra");
-    setDescription(
-      "A beginner-friendly course covering basic algebra concepts, equations, and functions."
-    );
-    setSubjectIds([1, 2]);
-    setLearningModes(["ONLINE"]);
-    setLocationId(1);
-    setSpecificAddress("123 Main Street, Phnom Penh, Cambodia");
-    setBasePrice(50);
-    setMaxStudents(20);
-    setSchedules([
-      {
-        scheduleType: "weekly",
-        startDate: "2026-04-10",
-        endDate: "2026-06-30",
-        timeRanges: [
-          { startTime: "09:00", endTime: "11:00" },
-          { startTime: "14:00", endTime: "16:00" },
-        ],
-      },
-      {
-        scheduleType: "special-session",
-        startDate: "2026-05-15",
-        endDate: "2026-05-15",
-        timeRanges: [{ startTime: "10:00", endTime: "12:00" }],
-      },
-    ]);
-  };
-
+  /* ================= UI ================= */
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center items-start py-6 px-2">
-      <div className="bg-white w-full max-w-2xl p-6 rounded-xl border border-gray-200">
-        <h1 className="text-2xl font-semibold mb-4 text-gray-800">Create New Class</h1>
+    <div className="min-h-screen bg-gray-100 flex justify-center p-4">
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Title */}
+      <div className="bg-white w-full max-w-3xl h-[90vh] rounded-2xl shadow-lg border flex flex-col overflow-hidden">
+
+        {/* HEADER */}
+        <div className="p-5 border-b flex justify-between items-center bg-white">
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-600">Title</label>
+            <h1 className="text-2xl font-bold">Create Open Class</h1>
+            <p className="text-sm text-gray-500">
+              Fill all required information
+            </p>
+          </div>
+
+         
+        </div>
+
+        {/* SCROLL AREA */}
+        <div className="p-6 space-y-5 overflow-y-auto flex-1">
+
+          {/* TITLE */}
+          <input
+            className="w-full border p-3 rounded-xl"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Class title"
+          />
+
+          {/* DESCRIPTION */}
+          <textarea
+            className="w-full border p-3 rounded-xl"
+            rows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+
+          {/* SUBJECTS */}
+          <div className="grid grid-cols-2 gap-2">
+            {subjects.map((s) => (
+              <label
+                key={s.id}
+                className="flex gap-2 border p-2 rounded-lg hover:bg-gray-50"
+              >
+                <input
+                  type="checkbox"
+                  checked={subjectIds.includes(s.id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSubjectIds([...subjectIds, s.id]);
+                    } else {
+                      setSubjectIds(subjectIds.filter((x) => x !== s.id));
+                    }
+                  }}
+                />
+                {s.name}
+              </label>
+            ))}
+          </div>
+
+          {/* LOCATION */}
+          <select
+            className="w-full border p-3 rounded-xl"
+            value={locationId ?? ""}
+            onChange={(e) => setLocationId(Number(e.target.value))}
+          >
+            <option>Select location</option>
+            {locations.map((l) => (
+              <option key={l.locationId} value={l.locationId}>
+                {l.city} - {l.district}
+              </option>
+            ))}
+          </select>
+
+          {/* ADDRESS */}
+          <input
+            className="w-full border p-3 rounded-xl"
+            value={specificAddress}
+            onChange={(e) => setSpecificAddress(e.target.value)}
+          />
+
+          {/* PRICE */}
+          <div className="grid grid-cols-2 gap-2">
             <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 outline-none text-sm"
-              placeholder="Class title"
-              required
+              type="number"
+              className="border p-3 rounded-xl"
+              value={basePrice}
+              onChange={(e) => setBasePrice(Number(e.target.value))}
+            />
+
+            <input
+              type="number"
+              className="border p-3 rounded-xl"
+              value={maxStudents}
+              onChange={(e) => setMaxStudents(Number(e.target.value))}
             />
           </div>
 
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-600">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 outline-none text-sm"
-              rows={3}
-              placeholder="Class description"
-              required
-            />
+          {/* SCHEDULE */}
+          <div className="border p-4 rounded-xl bg-gray-50">
+            <div className="flex justify-between mb-2">
+              <p className="font-semibold">Schedule</p>
+              <button onClick={addSlot} className="text-blue-600">
+                + Add
+              </button>
+            </div>
+
+            {dayTimeSlots.map((slot, i) => (
+              <div key={i} className="grid grid-cols-4 gap-2 mt-2">
+                <select
+                  className="border p-2 rounded-lg"
+                  value={slot.day}
+                  onChange={(e) => updateSlot(i, "day", e.target.value)}
+                >
+                  {dayOptions.map((d) => (
+                    <option key={d}>{d}</option>
+                  ))}
+                </select>
+
+                <input
+                  type="time"
+                  className="border p-2 rounded-lg"
+                  value={slot.startTime}
+                  onChange={(e) =>
+                    updateSlot(i, "startTime", e.target.value)
+                  }
+                />
+
+                <input
+                  type="time"
+                  className="border p-2 rounded-lg"
+                  value={slot.endTime}
+                  onChange={(e) =>
+                    updateSlot(i, "endTime", e.target.value)
+                  }
+                />
+
+                <button
+                  onClick={() => removeSlot(i)}
+                  className="text-red-500"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
           </div>
 
-          {/* Subjects & Learning Modes */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-600">Subjects</label>
+          {/* IMAGE UPLOAD (IMPROVED UI) */}
+          <div className="border rounded-xl p-4 bg-gray-50">
+
+            <label className="block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:bg-gray-100">
               <input
-                type="text"
-                value={subjectIds.join(",")}
+                type="file"
+                accept="image/*"
+                hidden
                 onChange={(e) =>
-                  setSubjectIds(e.target.value.split(",").map((id) => Number(id.trim())))
+                  handleImageChange(e.target.files?.[0] || null)
                 }
-                className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-1 focus:ring-indigo-400 outline-none text-sm"
-                placeholder="e.g., 1,2"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-600">Learning Modes</label>
-              <input
-                type="text"
-                value={learningModes.join(",")}
-                onChange={(e) =>
-                  setLearningModes(e.target.value.split(",").map((mode) => mode.trim()))
-                }
-                className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-1 focus:ring-indigo-400 outline-none text-sm"
-                placeholder="e.g., ONLINE, OFFLINE"
-              />
-            </div>
-          </div>
+              <p className="text-gray-500">Click to upload image</p>
+            </label>
 
-          {/* Location & Address */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-600">Location ID</label>
-              <input
-                type="number"
-                value={locationId}
-                onChange={(e) => setLocationId(Number(e.target.value))}
-                className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-1 focus:ring-indigo-400 outline-none text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-600">Address</label>
-              <input
-                type="text"
-                value={specificAddress}
-                onChange={(e) => setSpecificAddress(e.target.value)}
-                className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-1 focus:ring-indigo-400 outline-none text-sm"
-              />
-            </div>
-          </div>
+            {/* PREVIEW */}
+            {preview && (
+              <div className="mt-3 relative">
+                <img
+                  src={preview}
+                  className="w-full h-52 object-cover rounded-xl border"
+                />
 
-          {/* Price & Max Students */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-600">Base Price ($)</label>
-              <input
-                type="number"
-                value={basePrice}
-                onChange={(e) => setBasePrice(Number(e.target.value))}
-                className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-1 focus:ring-indigo-400 outline-none text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-600">Max Students</label>
-              <input
-                type="number"
-                value={maxStudents}
-                onChange={(e) => setMaxStudents(Number(e.target.value))}
-                className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-1 focus:ring-indigo-400 outline-none text-sm"
-              />
-            </div>
+                <button
+                  onClick={() => handleImageChange(null)}
+                  className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
           </div>
+        </div>
 
-          {/* Buttons */}
-          <div className="flex justify-end gap-2 mt-4">
-            <Button
-              type="button"
-              className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm px-4 py-1.5 rounded-full"
-              onClick={handleReset}
-              disabled={loading}
-            >
-              Reset
-            </Button>
-            <Button
-              type="submit"
-              className="bg-indigo-500 hover:bg-indigo-600 text-white text-sm px-4 py-1.5 rounded-full flex items-center gap-2"
-              disabled={loading}
-            >
-              {loading && <Loader2 className="animate-spin h-4 w-4" />}
-              Create
-            </Button>
-          </div>
-        </form>
+        {/* SUBMIT BUTTON */}
+        <div className="p-4 border-t">
+          <Button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="w-full bg-black text-white hover:bg-gray-900"
+          >
+            {loading && <Loader2 className="animate-spin w-4 h-4 mr-2" />}
+            Create Class
+          </Button>
+        </div>
+
       </div>
     </div>
   );
