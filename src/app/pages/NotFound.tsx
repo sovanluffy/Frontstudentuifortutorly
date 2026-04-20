@@ -1,29 +1,25 @@
-import { Button } from '../components/figma/ui/button';
-import { useNavigate } from 'react-router';
-import { Home, Search } from 'lucide-react';
+import { Link } from "react-router-dom";
+import { MoveLeft } from "lucide-react";
 
-export function NotFound() {
-  const navigate = useNavigate();
-
+export default function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center pb-20 md:pb-8">
-      <div className="text-center max-w-md mx-auto px-4">
-        <div className="text-9xl mb-4">404</div>
-        <h1 className="mb-4">Page Not Found</h1>
-        <p className="text-muted-foreground mb-8">
-          Sorry, we couldn't find the page you're looking for. It might have been
-          moved or deleted.
+    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6">
+      <h1 className="text-9xl font-black text-blue-100 absolute">404</h1>
+      
+      <div className="relative z-10 text-center">
+        <h2 className="text-3xl font-bold text-slate-800 mb-2">Oops! Page not found</h2>
+        <p className="text-slate-500 mb-8 max-w-md">
+          The page you are looking for might have been removed or had its name changed.
         </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={() => navigate('/')}>
-            <Home className="w-4 h-4 mr-2" />
-            Go Home
-          </Button>
-          <Button variant="outline" onClick={() => navigate('/search')}>
-            <Search className="w-4 h-4 mr-2" />
-            Find Tutors
-          </Button>
-        </div>
+        
+        {/* Using Link is safer than useNavigate in Error Boundaries */}
+        <Link 
+          to="/" 
+          className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100"
+        >
+          <MoveLeft size={18} />
+          Back to Home
+        </Link>
       </div>
     </div>
   );

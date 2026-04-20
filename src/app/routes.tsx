@@ -6,84 +6,50 @@ import { Layout } from "./components/Layout";
 // ================= PAGES =================
 import { Home } from "./pages/Home";
 import { TutorListing } from "./pages/TutorListing";
-import { Favorites } from "./pages/Favorites";
-import { Booking } from "./pages/Booking";
 import { MyBookings } from "./pages/MyBookings";
 import Profile from "./pages/Profile";
 import TutorDetailPage from "./pages/TutorDetailPage";
 import ClassDetailPage from "./pages/ClassDetailPage";
-import { NotFound } from "./pages/NotFound";
+import NotFound from "./pages/NotFound";
+import { Messages } from "@/app/components/shared/Messages";
+
+// ================= TUTOR PAGES =================
+import CreateOpenClassPage from "@/app/components/tutor/create-class/create-class";
+import TutorBookingPage from "./pages/TutorBookingPage";
 
 // ================= AUTH =================
 import Login from "@/app/components/auth/Login";
 import Signup from "@/app/components/auth/Signup";
 
-// ================= TUTOR CREATE CLASS =================
-import CreateOpenClassPage from "@/app/components/tutor/create-class/create-class";
+// ================= GUARDS =================
+import { TutorRoute, StudentRoute } from "@/utils/authGuard";
+
+// ================= NOTIFICATIONS PAGE =================
+import NotificationsPage from "@/app/pages/notifications/NotificationsPage";
 
 export const router = createBrowserRouter([
   // ================= AUTH ROUTES =================
   {
     path: "/login",
-    Component: Login,
+    element: <Login />,
   },
   {
     path: "/signup",
-    Component: Signup,
+    element: <Signup />,
   },
 
-  // ================= MAIN APP =================
+  // ================= MAIN LAYOUT =================
   {
     path: "/",
-    Component: Layout,
+    element: <Layout />,
+    errorElement: <NotFound />,
+
     children: [
       // HOME
-      {
-        index: true,
-        Component: Home,
-      },
+      { index: true, element: <Home /> },
 
       // SEARCH
-      {
-        path: "search",
-        Component: TutorListing,
-      },
-
-      // FAVORITES
-      {
-        path: "favorites",
-        Component: Favorites,
-      },
-
-      // BOOKING
-      {
-        path: "booking",
-        Component: Booking,
-      },
-
-      // MY BOOKINGS
-      {
-        path: "bookings",
-        Component: MyBookings,
-      },
-
-      // PROFILE
-      {
-        path: "profile",
-        Component: Profile,
-      },
-
-      // ================= CREATE CLASS (NEW) =================
-      {
-        path: "create-class",
-        Component: CreateOpenClassPage,
-      },
-
-      // ================= CLASS DETAIL =================
-      {
-        path: "classes/:id",
-        Component: ClassDetailPage,
-      },
+      { path: "search", element: <TutorListing /> },
 
       // ================= TUTOR DETAIL =================
       {
@@ -93,19 +59,58 @@ export const router = createBrowserRouter([
             `https://toturhub-dev.onrender.com/api/v1/tutors/${params.tutorId}`
           );
 
-          if (!res.ok) {
-            throw new Error("Tutor profile not found");
-          }
+          if (!res.ok) throw new Error("Tutor not found");
 
           return res.json();
         },
-        Component: TutorDetailPage,
+        element: <TutorDetailPage />,
       },
 
-      // ================= 404 =================
+      // CLASS DETAIL
+      { path: "classes/:id", element: <ClassDetailPage /> },
+
+      // ================= STUDENT ROUTES =================
+      {
+        path: "student/bookings",
+        element: (
+          <StudentRoute>
+            <MyBookings />
+          </StudentRoute>
+        ),
+      },
+
+      // ================= TUTOR ROUTES =================
+      {
+        path: "tutor/manage",
+        element: (
+          <TutorRoute>
+            <CreateOpenClassPage />
+          </TutorRoute>
+        ),
+      },
+      {
+        path: "tutor/bookings",
+        element: (
+          <TutorRoute>
+            <TutorBookingPage />
+          </TutorRoute>
+        ),
+      },
+
+      // ================= SHARED =================
+      { path: "messages", element: <Messages /> },
+      { path: "profile", element: <Profile /> },
+
+      // ================= NOTIFICATIONS PAGE (NEW) =================
+      {
+        path: "notifications",
+        element: <NotificationsPage />,
+      },
+
+      // ================= CATCH ALL =================
       {
         path: "*",
-        Component: NotFound,
+        element: <NotFound />,
       },
     ],
   },

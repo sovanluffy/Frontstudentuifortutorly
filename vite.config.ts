@@ -11,13 +11,16 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  // FIX: This polyfills 'global' for libraries like sockjs-client
+  define: {
+    global: 'window',
+  },
   server: {
     proxy: {
-      // When you fetch('/api/...'), Vite redirects it to Render
       '/api': {
         target: 'https://toturhub-dev.onrender.com',
         changeOrigin: true,
-        secure: false, // Helps if there are SSL issues with dev environments
+        secure: false,
       }
     }
   },

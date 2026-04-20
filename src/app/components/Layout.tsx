@@ -1,27 +1,46 @@
-import React, { useState } from "react";
-import { Outlet } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import { Navbar } from "./Navbar";
 import { Sidebar } from "./Sidebar";
 
 export function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { pathname } = useLocation();
+
+  // Automatically close sidebar on mobile when navigating
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      setIsSidebarOpen(false);
+    }
+  }, [pathname]);
 
   return (
-    // Main container: vertical flex to stack Navbar on top of the rest
-    <div className="flex flex-col h-screen w-full bg-[#F8FAFC] overflow-hidden">
-      
-      {/* 1. TOP NAVBAR: Spans 100% width */}
-      <Navbar onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+    <div className="flex h-screen w-full bg-[#F8FAFC] text-slate-900">
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
 
-      {/* 2. LOWER SECTION: Horizontal flex for Sidebar + Content */}
-      <div className="flex flex-1 overflow-hidden">
-        
-        {/* SIDEBAR: Slides in/out based on state */}
+      {/* Sidebar - Positioned fixed on mobile, relative on desktop */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 transition-transform duration-300 ease-in-out lg:relative
+        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:hidden"}
+      `}>
         <Sidebar isOpen={isSidebarOpen} />
+      </aside>
 
-        {/* MAIN CONTENT: Scrollable area */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="min-h-full">
+      {/* Main Content Area */}
+      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
+        <Navbar 
+          onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
+          isSidebarOpen={isSidebarOpen}
+        />
+        
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>
         </main>
