@@ -1,112 +1,184 @@
-import React, { useEffect, useState } from "react";
+import * as React from "react";
+import { useLoaderData, useNavigate } from "react-router-dom";
 import {
-  getTutorBookings,
-  confirmBooking,
-  rejectBooking,
-} from "@/app/api/bookingApi";
-import { useAuth } from "@/context/AuthContext";
+  Star, Users, MessageCircle, Phone, MapPin, ShieldCheck,
+  GraduationCap, Briefcase, Layers, PlayCircle,
+  Clock, Globe, Zap, CheckCircle2, Award
+} from "lucide-react";
 
-interface Booking {
-  bookingId: number;
-  status: string;
-  note?: string;
-  telegram?: string;
-  day?: string;
-  startTime?: string;
-  endTime?: string;
-}
+import { Badge } from "@/app/components/figma/ui/badge";
+import { Button } from "@/app/components/figma/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/figma/ui/tabs";
+import { ClassCard } from "@/app/components/ClassCard";
+import { cn } from "@/lib/utils";
+import { useClasses } from "@/hooks/useClasses";
 
-const TutorBookingPage = () => {
-  const { user } = useAuth();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(false);
+export default function TutorDetailPage() {
+  const tutor = useLoaderData() as any;
+  const navigate = useNavigate();
 
-  const loadBookings = async () => {
-    try {
-      setLoading(true);
-      if (!user?.id) return;
+  const [currentSlide, setCurrentSlide] = React.useState(0);
 
-      const data = await getTutorBookings(user.id);
-      setBookings(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // 🔥 API HOOK
+  const { classes, loading } = useClasses(tutor.tutorId);
 
-  useEffect(() => {
-    loadBookings();
-  }, [user?.id]);
+  const profilePicUrl = tutor.profilePicture || "/fallback-avatar.png";
 
-  const handleConfirm = async (id: number) => {
-    await confirmBooking(id);
-    loadBookings();
-  };
+  const slides = [
+    tutor.coverImage || "https://images.unsplash.com/photo-1513258496099-48168024adb0?q=80&w=2070",
+    "https://images.unsplash.com/photo-1522202176988-66273c2fd55f",
+    "https://images.unsplash.com/photo-1523240795612-9a054b0db644"
+  ];
 
-  const handleReject = async (id: number) => {
-    await rejectBooking(id);
-    loadBookings();
-  };
-
-  if (loading) {
-    return <div className="p-6">Loading bookings...</div>;
-  }
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [slides.length]);
 
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-bold">Tutor Bookings</h1>
+    <div className="min-h-screen pb-12 bg-[#F8FAFC]">
 
-      {bookings.length === 0 && (
-        <p className="text-gray-500">No bookings found</p>
-      )}
+      {/* COVER */}
+      <div className="relative h-[200px] w-full overflow-hidden bg-[#0F294D]">
+        {slides.map((img, index) => (
+          <img
+            key={index}
+            src={img}
+            className={cn(
+              "absolute inset-0 w-full h-full object-cover transition-opacity duration-1000",
+              index === currentSlide ? "opacity-40" : "opacity-0"
+            )}
+            alt="Cover"
+          />
+        ))}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#F8FAFC] via-transparent to-transparent" />
+      </div>
 
-      <div className="space-y-3">
-        {bookings.map((b) => (
-          <div
-            key={b.bookingId}
-            className="border p-4 rounded-xl flex justify-between items-center"
-          >
-            {/* LEFT */}
-            <div>
-              <p className="font-bold">Booking #{b.bookingId}</p>
-              <p className="text-sm text-gray-500">
-                Status: {b.status}
-              </p>
-              <p className="text-sm">{b.note}</p>
+      <div className="max-w-[1200px] mx-auto px-6">
+        <div className="relative -mt-16 flex flex-col lg:flex-row gap-6">
+
+          {/* LEFT */}
+          <div className="flex-1 space-y-6">
+
+            {/* HEADER */}
+            <div className="flex items-end gap-4">
+              <div className="relative shrink-0">
+                <div className="w-28 h-28 rounded-3xl overflow-hidden border-4 border-white shadow-md bg-white">
+                  <img src={profilePicUrl} className="w-full h-full object-cover" alt={tutor.fullname} />
+                </div>
+                {tutor.public && (
+                  <div className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full" />
+                )}
+              </div>
+
+              <div className="pb-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h1 className="text-2xl font-black text-slate-900">{tutor.fullname}</h1>
+                  <Badge className="bg-blue-50 text-blue-600 text-[10px] h-5 px-2">
+                    <ShieldCheck size={10} className="mr-1" /> Verified
+                  </Badge>
+                </div>
+
+                <div className="flex items-center gap-3 text-[12px] font-bold text-slate-500">
+                  <span className="flex items-center gap-1">
+                    <Star size={14} className="text-amber-400 fill-amber-400" /> {tutor.rating || "5.0"}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <MapPin size={14} /> {tutor.location || "Remote"}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Users size={14} /> {tutor.studentsTaught} Students
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* RIGHT ACTIONS */}
-            <div className="flex gap-2">
-              {b.status === "PENDING" && (
-                <>
-                  <button
-                    onClick={() => handleConfirm(b.bookingId)}
-                    className="bg-green-500 text-white px-3 py-1 rounded"
-                  >
-                    Confirm
-                  </button>
+            {/* TABS */}
+            <Tabs defaultValue="about" className="w-full">
+              <TabsList className="border-b h-9 gap-6">
+                <TabsTrigger value="about">Overview</TabsTrigger>
+                <TabsTrigger value="classes">
+                  Classes ({classes.length})
+                </TabsTrigger>
+                <TabsTrigger value="portfolio">Credentials</TabsTrigger>
+              </TabsList>
 
-                  <button
-                    onClick={() => handleReject(b.bookingId)}
-                    className="bg-red-500 text-white px-3 py-1 rounded"
-                  >
-                    Reject
-                  </button>
-                </>
-              )}
+              {/* ABOUT */}
+              <TabsContent value="about" className="space-y-6">
+                <p className="text-slate-600">{tutor.bio}</p>
+              </TabsContent>
 
-              {b.status !== "PENDING" && (
-                <span className="text-sm text-gray-500">
-                  {b.status}
-                </span>
-              )}
+              {/* 🔥 CLASSES */}
+              <TabsContent value="classes" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                {loading ? (
+                  <p className="text-sm text-slate-400">Loading classes...</p>
+                ) : classes.length > 0 ? (
+                  classes.map((item: any) => (
+                    <div key={item.classId} className="bg-white rounded-xl p-2 border shadow-sm">
+
+                      <div className="relative">
+                        <div className="absolute top-2 left-2 bg-white px-2 py-1 text-xs font-bold rounded">
+                          ${item.basePrice}
+                        </div>
+
+                        <ClassCard openClass={item} />
+                      </div>
+
+                      <div className="p-2 flex justify-between text-xs">
+                        <span>
+                          {item.currentStudents}/{item.maxStudents}
+                        </span>
+
+                        <Button
+                          size="sm"
+                          onClick={() => navigate(`/classes/${item.classId}`)}
+                        >
+                          Open
+                        </Button>
+                      </div>
+
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-400">No classes found</p>
+                )}
+
+              </TabsContent>
+
+              {/* PORTFOLIO */}
+              <TabsContent value="portfolio">
+                <p className="text-slate-400">No credentials</p>
+              </TabsContent>
+            </Tabs>
+
+          </div>
+
+          {/* RIGHT */}
+          <div className="w-full lg:w-[300px]">
+            <div className="bg-white p-5 rounded-xl border space-y-3">
+              <Button className="w-full bg-blue-600">Send Inquiry</Button>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline">
+                  <MessageCircle size={14} /> Chat
+                </Button>
+                <Button variant="outline">
+                  <Phone size={14} /> Call
+                </Button>
+              </div>
+            </div>
+
+            <div className="bg-slate-900 text-white p-4 mt-4 rounded-xl">
+              <p className="text-xs">Impact</p>
+              <p className="font-bold">{tutor.studentsTaught}+ Students</p>
             </div>
           </div>
-        ))}
+
+        </div>
       </div>
     </div>
   );
-};
-
-export default TutorBookingPage;
+}

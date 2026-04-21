@@ -1,97 +1,49 @@
-const API_BASE =
-  "https://toturhub-dev.onrender.com/api/v1/notifications";
+import axios from "axios";
 
-/* ================= TOKEN ================= */
-const getToken = (): string | null => {
-  if (typeof document === "undefined") return null;
+const API_BASE_URL = "https://toturhub-dev.onrender.com/api/v1/notifications";
 
-  const match = document.cookie.match(
-    new RegExp("(^| )token=([^;]+)")
-  );
-
-  return match ? match[2] : null;
-};
-
-/* ================= HEADERS ================= */
-const authHeaders = () => {
-  const token = getToken();
-
-  if (!token) {
-    throw new Error("No authentication token found");
-  }
-
+// Helper to get token from cookies
+const getAuthHeaders = () => {
+  const token = document.cookie
+    .match(new RegExp("(^| )token=([^;]+)"))?.[2];
   return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   };
 };
 
-/* ================= TYPES ================= */
 export interface Notification {
   id: number;
   recipientEmail: string;
-  type: string;
   content: string;
+  type: string;
   bookingId: number;
   classId: number;
+  read: boolean; // Maps to isRead in your Java Entity
   createdAt: string;
-  read: boolean;
 }
 
-/* ================= GET MY NOTIFICATIONS ================= */
+/* ================= API METHODS ================= */
+
 export const getMyNotifications = async (): Promise<Notification[]> => {
-  const res = await fetch(`${API_BASE}/my-notifications`, {
-    method: "GET",
-    headers: authHeaders(),
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data?.message || "Failed to fetch notifications");
-  }
-
-  return data;
+  const response = await axios.get(`${API_BASE_URL}/my-notifications`, getAuthHeaders());
+  return response.data;
 };
 
-/* ================= UNREAD COUNT ================= */
 export const getUnreadCount = async (): Promise<number> => {
-  const res = await fetch(`${API_BASE}/unread-count`, {
-    method: "GET",
-    headers: authHeaders(),
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data?.message || "Failed to fetch unread count");
-  }
-
-  return Number(data);
+  const response = await axios.get(`${API_BASE_URL}/unread-count`, getAuthHeaders());
+  return response.data;
 };
 
-/* ================= MARK ONE AS READ ================= */
 export const markAsRead = async (id: number): Promise<void> => {
-  const res = await fetch(`${API_BASE}/read/${id}`, {
-    method: "PATCH",
-    headers: authHeaders(),
-  });
-
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data?.message || "Failed to mark as read");
-  }
+  await axios.patch(`${API_BASE_URL}/read/${id}`, {}, getAuthHeaders());
 };
 
-/* ================= MARK ALL AS READ ================= */
 export const markAllAsRead = async (): Promise<void> => {
-  const res = await fetch(`${API_BASE}/read-all`, {
-    method: "PATCH",
-    headers: authHeaders(),
-  });
+  await axios.patch(`${API_BASE_URL}/read-all`, {}, getAuthHeaders());
+};
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data?.message || "Failed to mark all as read");
-  }
+export const deleteNotification = async (id: number): Promise<void> => {
+  await axios.delete(`${API_BASE_URL}/${id}`, getAuthHeaders());
 };

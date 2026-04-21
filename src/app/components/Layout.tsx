@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Navbar } from "./Navbar";
@@ -7,7 +9,6 @@ export function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const { pathname } = useLocation();
 
-  // Automatically close sidebar on mobile when navigating
   useEffect(() => {
     if (window.innerWidth < 1024) {
       setIsSidebarOpen(false);
@@ -24,7 +25,7 @@ export function Layout() {
         />
       )}
 
-      {/* Sidebar - Positioned fixed on mobile, relative on desktop */}
+      {/* Sidebar */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 transition-transform duration-300 ease-in-out lg:relative
         ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:hidden"}
@@ -39,8 +40,10 @@ export function Layout() {
           isSidebarOpen={isSidebarOpen}
         />
         
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
+        {/* CHANGED: Removed p-4 md:p-6 lg:p-8 to delete outer spacing */}
+        <main className="flex-1 overflow-y-auto">
+          {/* CHANGED: Removed max-w-7xl and mx-auto to use full width */}
+          <div className="w-full">
             <Outlet />
           </div>
         </main>
