@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { Loader2, ShieldCheck, MapPin, User, BookOpen } from "lucide-react"; // Added icons
-import PortfolioEditor from "@/app/components/tutor/PortfolioEditor";
-import ProfilePublish from "@/app/components/tutor/ProfilePublish";
-import { ProfileDetails } from "@/app/components/tutor/ProfileDetails";
-import { ProfileSidebar } from "@/app/components/tutor/ProfileSidebar";
-import CreateClassPage from "@/app/components/tutor/create-class/create-class";
+import PortfolioEditor from "@/app/pages/tutor/PortfolioEditor";
+import ProfilePublish from "@/app/pages/tutor/ProfilePublish";
+import { ProfileDetails } from "@/app/pages/tutor/ProfileDetails";
+import { ProfileSidebar } from "@/app/pages/tutor/ProfileSidebar";
+import CreateClassPage from "@/app/pages/tutor/create-class/create-class";
 import { Button } from "@/app/components/figma/ui/button";
 
 interface OpenClass {

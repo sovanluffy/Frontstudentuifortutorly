@@ -5,17 +5,19 @@ import { Layout } from "./components/Layout";
 
 // ================= PAGES =================
 import { Home } from "./pages/Home";
-import { TutorListing } from "./pages/TutorListing";
-import { MyBookings } from "./pages/MyBookings";
+import MyBookings from "./pages/student/bookings/MyBookingsPage";
 import Profile from "./pages/Profile";
 import TutorDetailPage from "./pages/TutorDetailPage";
 import ClassDetailPage from "./pages/ClassDetailPage";
 import NotFound from "./pages/NotFound";
-import { Messages } from "@/app/components/shared/Messages";
 
-// ================= TUTOR PAGES =================
-import CreateOpenClassPage from "@/app/components/tutor/create-class/create-class";
-import TutorBookingPage from "./pages/TutorBookingPage";
+// ================= CHAT =================
+import Messages from "@/app/components/shared/Messages";
+
+// ================= TUTOR =================
+import CreateOpenClassPage from "@/app/pages/tutor/create-class/create-class";
+import TutorBookingPage from "@/app/pages/tutor/booking/TutorBookingList";
+import TutorDashboard from "@/app/pages/TutorDashboard";
 
 // ================= AUTH =================
 import Login from "@/app/components/auth/Login";
@@ -24,11 +26,11 @@ import Signup from "@/app/components/auth/Signup";
 // ================= GUARDS =================
 import { TutorRoute, StudentRoute } from "@/utils/authGuard";
 
-// ================= NOTIFICATIONS PAGE =================
+// ================= NOTIFICATIONS =================
 import NotificationsPage from "@/app/pages/notifications/NotificationsPage";
 
 export const router = createBrowserRouter([
-  // ================= AUTH ROUTES =================
+  // ================= AUTH =================
   {
     path: "/login",
     element: <Login />,
@@ -38,18 +40,15 @@ export const router = createBrowserRouter([
     element: <Signup />,
   },
 
-  // ================= MAIN LAYOUT =================
+  // ================= MAIN =================
   {
     path: "/",
     element: <Layout />,
     errorElement: <NotFound />,
 
     children: [
-      // HOME
+      // ================= HOME =================
       { index: true, element: <Home /> },
-
-      // SEARCH
-      { path: "search", element: <TutorListing /> },
 
       // ================= TUTOR DETAIL =================
       {
@@ -60,16 +59,18 @@ export const router = createBrowserRouter([
           );
 
           if (!res.ok) throw new Error("Tutor not found");
-
           return res.json();
         },
         element: <TutorDetailPage />,
       },
 
-      // CLASS DETAIL
-      { path: "classes/:id", element: <ClassDetailPage /> },
+      // ================= CLASS DETAIL =================
+      {
+        path: "classes/:id",
+        element: <ClassDetailPage />,
+      },
 
-      // ================= STUDENT ROUTES =================
+      // ================= STUDENT =================
       {
         path: "student/bookings",
         element: (
@@ -79,7 +80,23 @@ export const router = createBrowserRouter([
         ),
       },
 
-      // ================= TUTOR ROUTES =================
+      // ================= TUTOR =================
+      {
+        path: "tutor/dashboard",
+        element: (
+          <TutorRoute>
+            <TutorDashboard />
+          </TutorRoute>
+        ),
+      },
+      {
+        path: "tutor/booking", // ✅ CHANGED HERE
+        element: (
+          <TutorRoute>
+            <TutorBookingPage />
+          </TutorRoute>
+        ),
+      },
       {
         path: "tutor/manage",
         element: (
@@ -88,26 +105,26 @@ export const router = createBrowserRouter([
           </TutorRoute>
         ),
       },
+
+      // ================= CHAT =================
       {
-        path: "tutor/bookings",
-        element: (
-          <TutorRoute>
-            <TutorBookingPage />
-          </TutorRoute>
-        ),
+        path: "messages",
+        element: <Messages />,
       },
 
-      // ================= SHARED =================
-      { path: "messages", element: <Messages /> },
-      { path: "profile", element: <Profile /> },
+      // ================= PROFILE =================
+      {
+        path: "profile",
+        element: <Profile />,
+      },
 
-      // ================= NOTIFICATIONS PAGE (NEW) =================
+      // ================= NOTIFICATIONS =================
       {
         path: "notifications",
         element: <NotificationsPage />,
       },
 
-      // ================= CATCH ALL =================
+      // ================= 404 =================
       {
         path: "*",
         element: <NotFound />,

@@ -1,25 +1,14 @@
 "use client";
 
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-} from "react";
-import { useLocation } from "react-router-dom";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import SockJS from "sockjs-client";
 import Stomp from "stompjs";
-import { Send } from "lucide-react";
+import { Send, Search, MoreVertical, Phone, Video, User, MessageSquare, ShieldAlert } from "lucide-react";
 
-/* ================= API ================= */
-import {
-  sendMessage,
-  getChatHistory,
-  markAsRead,
-} from "@/app/api/chatApi";
+const API_BASE = "https://toturhub-dev.onrender.com/api/v1";
 
-/* ================= TYPE ================= */
+/* ================= TYPES ================= */
 interface Message {
   id: number;
   content: string;
@@ -27,226 +16,293 @@ interface Message {
   recipientId: number;
   timestamp: string;
   read: boolean;
-  type?: "USER" | "SYSTEM";
+  messageType?: "USER" | "SYSTEM";
 }
 
-/* ================= COOKIE ================= */
+interface ChatContact {
+  userId: number;
+  name: string;
+  avatar?: string;
+  lastMessage: string;
+  unreadCount: number;
+  lastTime: string;
+}
+
 const getCookie = (name: string) => {
   if (typeof document === "undefined") return null;
-
-  return document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(name + "="))
-    ?.split("=")[1];
+  return document.cookie.split("; ").find((row) => row.startsWith(name + "="))?.split("=")[1];
 };
 
-/* ================= TOKEN ================= */
 const decodeToken = (token: string) => {
-  try {
-    return JSON.parse(atob(token.split(".")[1]));
-  } catch {
-    return null;
-  }
+  try { return JSON.parse(atob(token.split(".")[1])); } catch { return null; }
 };
 
-/* ================= CACHE ================= */
 const chatCache: Record<number, Message[]> = {};
 
-export const Messages = () => {
+const Messages = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
-
   const stompRef = useRef<Stomp.Client | null>(null);
 
   const token = getCookie("token");
+  const userData = useMemo(() => (token ? decodeToken(token) : null), [token]);
+  const currentUserId = userData?.userId;
 
-  const passedData = location.state as any;
-  const recipientId = passedData?.recipientId;
-  const recipientName = passedData?.recipientName || "Chat";
-
-  const userData = useMemo(
-    () => (token ? decodeToken(token) : null),
-    [token]
-  );
-
-  const currentUserId = userData?.userId || userData?.id;
+  const recipientId = location.state?.recipientId;
+  const recipientName = location.state?.recipientName || "Chat";
+  const recipientAvatar = location.state?.avatar;
 
   const [messages, setMessages] = useState<Message[]>([]);
+  const [contacts, setContacts] = useState<ChatContact[]>([]);
   const [input, setInput] = useState("");
   const [connected, setConnected] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  /* ================= LOAD HISTORY ================= */
+  const scrollToBottom = useCallback(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+
+  /* ================= API ACTIONS ================= */
+  const loadContacts = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/chat/contacts`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setContacts(Array.isArray(data) ? data : []);
+      window.dispatchEvent(new Event("refreshCounts"));
+    } catch (err) { console.error("Contacts load error:", err); }
+  }, [token]);
+
   const loadMessages = useCallback(async () => {
-    if (!recipientId) return;
+    // GUARD: Prevent 400 error by ensuring ID is a valid number
+    if (!recipientId || isNaN(Number(recipientId)) || !token) return;
 
     try {
-      if (chatCache[recipientId]) {
-        setMessages(chatCache[recipientId]);
+      if (chatCache[recipientId]) setMessages(chatCache[recipientId]);
+      
+      const res = await fetch(`${API_BASE}/chat/history/${recipientId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      const data = await res.json();
+
+      if (Array.isArray(data)) {
+        chatCache[recipientId] = data;
+        setMessages(data);
+      } else {
+        console.error("API Error (History):", data);
+        setMessages([]); // Fallback to empty array
       }
-
-      const data = await getChatHistory(recipientId);
-
-      chatCache[recipientId] = data;
-      setMessages(data);
-    } catch (err) {
-      console.error("Load error:", err);
+      
+      setTimeout(scrollToBottom, 100);
+    } catch (err) { 
+      console.error("History fetch failure:", err);
+      setMessages([]); 
     }
-  }, [recipientId]);
+  }, [recipientId, token, scrollToBottom]);
+
+  /* ================= EFFECTS ================= */
+  useEffect(() => { loadContacts(); }, [loadContacts]);
+  useEffect(() => { loadMessages(); }, [loadMessages, recipientId]);
 
   useEffect(() => {
-    loadMessages();
-  }, [loadMessages]);
+    if (!recipientId || isNaN(Number(recipientId)) || !token) return;
+    fetch(`${API_BASE}/chat/read/${recipientId}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(() => {
+      loadContacts();
+      window.dispatchEvent(new Event("refreshCounts"));
+    }).catch(console.error);
+  }, [recipientId, token, loadContacts]);
 
-  /* ================= MARK AS READ ================= */
-  useEffect(() => {
-    if (!recipientId) return;
-
-    markAsRead(recipientId).catch(console.error);
-  }, [recipientId]);
-
-  /* ================= WEBSOCKET (SAFE FIXED) ================= */
   useEffect(() => {
     if (!token || !recipientId) return;
 
     const socket = new SockJS("https://toturhub-dev.onrender.com/ws");
     const stomp = Stomp.over(socket);
-    stomp.debug = () => {};
+    stomp.debug = () => {}; 
 
-    stomp.connect(
-      { Authorization: `Bearer ${token}` },
+    stomp.connect({ Authorization: `Bearer ${token}` }, 
       () => {
         setConnected(true);
-
+        stompRef.current = stomp;
         stomp.subscribe("/user/queue/messages", (msg) => {
           const data: Message = JSON.parse(msg.body);
-
           setMessages((prev) => {
-            if (prev.some((m) => m.id === data.id)) return prev;
-
-            const updated = [...prev, data];
+            const safePrev = Array.isArray(prev) ? prev : [];
+            if (safePrev.some((m) => m.id === data.id)) return safePrev;
+            const updated = [...safePrev, data]; 
             chatCache[recipientId] = updated;
             return updated;
           });
+          loadContacts();
+          window.dispatchEvent(new Event("refreshCounts"));
         });
-      },
+      }, 
       (err) => {
-        console.error("WebSocket error:", err);
+        console.error("STOMP connection failed:", err);
         setConnected(false);
       }
     );
 
-    stompRef.current = stomp;
-
     return () => {
-      stomp.disconnect(() => {
-        setConnected(false);
-      });
+      if (stomp.connected) stomp.disconnect(() => setConnected(false));
     };
-  }, [token, recipientId]);
+  }, [token, recipientId, loadContacts]);
 
-  /* ================= SEND MESSAGE ================= */
+  /* ================= SEND HANDLER ================= */
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!input.trim() || !recipientId) return;
+    const messageContent = input.trim();
+    if (!messageContent || !recipientId || !token || !connected) return;
 
     try {
-      const newMsg = await sendMessage(recipientId, input);
+      const res = await fetch(`${API_BASE}/chat/send`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ recipientId, content: messageContent }),
+      });
+
+      if (!res.ok) throw new Error("Send failed");
+      const newMsg = await res.json();
+      
+      const finalizedMsg = {
+        ...newMsg,
+        timestamp: newMsg.timestamp || new Date().toISOString()
+      };
 
       setMessages((prev) => {
-        const updated = [...prev, newMsg];
+        const safePrev = Array.isArray(prev) ? prev : [];
+        const updated = [...safePrev, finalizedMsg]; 
         chatCache[recipientId] = updated;
         return updated;
       });
-
+      
       setInput("");
-    } catch (err) {
-      console.error("Send error:", err);
-    }
+      loadContacts();
+      window.dispatchEvent(new Event("refreshCounts"));
+    } catch (err) { console.error("Send error:", err); }
   };
 
-  /* ================= AUTO SCROLL ================= */
-  useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  const filteredContacts = contacts.filter(c => 
+    c.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  /* ================= UI ================= */
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-gray-50">
+    <div className="flex h-screen bg-white overflow-hidden font-sans text-slate-900">
+      {/* SIDEBAR */}
+      <div className="w-80 bg-slate-50 border-r border-slate-200 flex flex-col hidden md:flex">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold tracking-tight text-slate-800">Messages</h2>
+            <div className="p-2 bg-white rounded-full border border-slate-200 shadow-sm">
+               <ShieldAlert size={16} className={connected ? "text-green-500" : "text-red-500"} />
+            </div>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input 
+              type="text" 
+              placeholder="Search"
+              className="w-full bg-white border border-slate-200 rounded-2xl py-2 pl-10 pr-4 text-sm focus:outline-none"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
 
-      {/* LEFT PANEL */}
-      <div className="w-80 bg-white border-r hidden md:block p-6">
-        <h2 className="text-2xl font-bold mb-6">Messages</h2>
-
-        <div className="p-4 bg-blue-600 text-white rounded-xl">
-          <p className="font-bold">{recipientName}</p>
-          <p className="text-xs mt-1">
-            {connected ? "🟢 Online" : "🔴 Offline"}
-          </p>
+        <div className="flex-1 overflow-y-auto px-3 space-y-1 pb-4">
+          {filteredContacts.map((c) => (
+            <button
+              key={c.userId}
+              onClick={() => navigate("/messages", { state: { recipientId: c.userId, recipientName: c.name, avatar: c.avatar } })}
+              className={`w-full text-left flex items-center gap-3 p-3 rounded-2xl transition-all ${
+                recipientId === c.userId ? "bg-white shadow-md ring-1 ring-black/5" : "hover:bg-slate-200/50"
+              }`}
+            >
+              <div className="relative flex-shrink-0">
+                {c.avatar ? <img src={c.avatar} className="w-12 h-12 rounded-2xl object-cover" /> : <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 font-bold">{c.name?.charAt(0)}</div>}
+                {c.unreadCount > 0 && <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-50">{c.unreadCount}</div>}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-baseline mb-0.5">
+                  <h4 className="font-bold text-slate-800 truncate text-[14.5px]">{c.name}</h4>
+                  <span className="text-[10px] text-slate-400 font-medium">{c.lastTime && new Date(c.lastTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <p className={`text-xs truncate ${c.unreadCount > 0 ? "text-slate-900 font-semibold" : "text-slate-500"}`}>{c.lastMessage}</p>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* CHAT */}
-      <div className="flex-1 flex flex-col">
-
-        {/* MESSAGES */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-3">
-
-          {messages.map((msg) => {
-            const isMe = msg.senderId === currentUserId;
-
-            if (msg.type === "SYSTEM") {
-              return (
-                <div key={msg.id} className="flex justify-center">
-                  <div className="bg-yellow-100 text-yellow-700 px-3 py-2 rounded-xl text-xs">
-                    {msg.content}
-                  </div>
+      {/* CHAT VIEW */}
+      <div className="flex-1 flex flex-col relative">
+        {recipientId ? (
+          <>
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden border border-slate-200">
+                  {recipientAvatar ? <img src={recipientAvatar} className="w-full h-full object-cover" /> : <User className="p-2 text-slate-400" />}
                 </div>
-              );
-            }
-
-            return (
-              <div
-                key={msg.id}
-                className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`px-4 py-2 rounded-2xl text-sm max-w-[60%] ${
-                    isMe
-                      ? "bg-blue-600 text-white"
-                      : "bg-white border"
-                  }`}
-                >
-                  {msg.content}
+                <div>
+                  <h3 className="font-bold text-slate-800 leading-tight">{recipientName}</h3>
+                  <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
+                    <span className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-green-500" : "bg-red-400 animate-pulse"}`} />
+                    {connected ? "Active now" : "Connecting..."}
+                  </span>
                 </div>
               </div>
-            );
-          })}
+            </div>
 
-          <div ref={scrollRef} />
-        </div>
+            <div className="flex-1 overflow-y-auto p-6 bg-[#F8FAFC] flex flex-col">
+              <div className="flex-1" />
+              <div className="space-y-6">
+                {(Array.isArray(messages) ? messages : []).map((msg, idx) => {
+                  const isMe = msg.senderId === currentUserId;
+                  return (
+                    <div key={msg.id || idx} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                      <div className="max-w-[70%]">
+                        <div className={`px-4 py-2.5 shadow-sm text-sm ${isMe ? "bg-blue-600 text-white rounded-2xl rounded-br-none" : "bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-bl-none"}`}>
+                          {msg.content}
+                        </div>
+                        <p className={`text-[10px] mt-1 text-slate-400 font-medium ${isMe ? "text-right" : "text-left"}`}>
+                           {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div ref={scrollRef} className="pt-4" />
+            </div>
 
-        {/* INPUT */}
-        <form
-          onSubmit={handleSend}
-          className="p-4 bg-white border-t flex gap-3"
-        >
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type message..."
-            className="flex-1 px-4 py-3 rounded-xl bg-gray-100"
-          />
-
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-5 rounded-xl"
-          >
-            <Send size={18} />
-          </button>
-        </form>
-
+            <div className="p-4 bg-white border-t border-slate-100">
+              <form onSubmit={handleSend} className="flex items-center gap-3 max-w-4xl mx-auto">
+                <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={connected ? "Type a message..." : "Waiting..."} disabled={!connected} className="flex-1 px-5 py-3 rounded-2xl bg-slate-100 outline-none text-sm" />
+                <button type="submit" disabled={!input.trim() || !connected} className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl disabled:opacity-50"><Send size={18} /></button>
+              </form>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-slate-50">
+             <MessageSquare size={48} className="mb-2 opacity-20" />
+             <p className="font-bold text-slate-600">Select a chat to begin</p>
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
+export default Messages;

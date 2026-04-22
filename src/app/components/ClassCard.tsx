@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useMemo, memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, User, Info, CheckCircle2 } from "lucide-react";
+import { MapPin, User, Star, Eye } from "lucide-react";
 import { Button } from "@/app/components/figma/ui/button";
+import { cn } from "@/lib/utils";
 
 /* ================= TYPES ================= */
 interface Schedule {
@@ -34,124 +35,139 @@ interface ClassCardProps {
 }
 
 /* ================= COMPONENT ================= */
-export const ClassCard = ({ openClass }: ClassCardProps) => {
+const ClassCardComponent = ({ openClass }: ClassCardProps) => {
   const navigate = useNavigate();
 
-  // Navigation Handlers
-  const handleOpen = () => navigate(`/classes/${openClass.classId}`);
-  
-  const handleBooking = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Stop parent onClick
-    navigate(`/booking?classId=${openClass.classId}`);
+  const isFull =
+    openClass.status !== "OPEN" ||
+    openClass.currentStudents >= openClass.maxStudents;
+
+  const enrollmentPercentage = useMemo(() => {
+    if (!openClass.maxStudents) return 0;
+    return Math.min(
+      (openClass.currentStudents / openClass.maxStudents) * 100,
+      100
+    );
+  }, [openClass.currentStudents, openClass.maxStudents]);
+
+  // Unified navigation to Detail Page
+  const handleViewDetails = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/classes/${openClass.classId}`);
   };
 
-  const enrollmentPercentage = Math.min(
-    (openClass.currentStudents / openClass.maxStudents) * 100,
-    100
-  );
-
   return (
-    <div
-      onClick={handleOpen}
-      className="group w-full max-w-[480px] bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-100 transition-all duration-300 p-3 cursor-pointer flex flex-col gap-3"
+    <article
+      onClick={handleViewDetails}
+      className={cn(
+        "group flex flex-col bg-white rounded-2xl border border-slate-200/80 overflow-hidden",
+        "hover:shadow-xl hover:shadow-indigo-100/50 hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+      )}
     >
-      {/* TOP SECTION: IMAGE & PRIMARY INFO */}
-      <div className="flex gap-4">
-        {/* THUMBNAIL */}
-        <div className="w-20 h-20 bg-slate-50 rounded-xl overflow-hidden relative flex-shrink-0 border border-slate-100">
-          <img
-            src={openClass.classImage || "https://via.placeholder.com/150"}
-            alt={openClass.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-          />
-          <div className={`absolute top-1 left-1 px-1.5 py-0.5 rounded-md text-[8px] font-black text-white uppercase tracking-tighter ${
-            openClass.status === "OPEN" ? "bg-emerald-500" : "bg-slate-400"
-          }`}>
-            {openClass.status}
+      {/* IMAGE CONTAINER */}
+      <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden">
+        <img
+          src={openClass.classImage || "https://via.placeholder.com/400x250"}
+          alt={openClass.title}
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+        />
+
+        {/* TOP BADGES */}
+        <div className="absolute top-3 inset-x-3 flex justify-between items-start">
+          <span
+            className={cn(
+              "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm backdrop-blur-md",
+              isFull ? "bg-slate-900/80 text-white" : "bg-white/90 text-indigo-600"
+            )}
+          >
+            {isFull ? "Full" : "Open"}
+          </span>
+          
+          <div className="bg-white/90 backdrop-blur-md px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+            <Star size={12} className="text-amber-400 fill-amber-400" />
+            <span className="text-[11px] font-bold text-slate-700">
+              {openClass.tutorRating ?? "5.0"}
+            </span>
           </div>
         </div>
 
-        {/* HEADER CONTENT */}
-        <div className="flex-1 min-w-0 flex flex-col">
-          <div className="flex justify-between items-start">
-            <h2 className="font-bold text-sm text-slate-900 truncate uppercase tracking-tight group-hover:text-indigo-600 transition-colors">
-              {openClass.title}
-            </h2>
-            <div className="text-sm font-black text-indigo-600 flex flex-col items-end leading-none">
-              <span>${openClass.basePrice}</span>
-              <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">USD</span>
-            </div>
-          </div>
-
-          {/* INSTRUCTOR & LOCATION */}
-          <div className="flex items-center gap-3 mt-1.5">
-            <div className="flex items-center gap-1 min-w-0">
-              <div className="w-4 h-4 rounded-full bg-indigo-50 flex items-center justify-center">
-                <User size={10} className="text-indigo-600" />
-              </div>
-              <span className="text-[10px] font-bold text-slate-600 truncate">{openClass.tutorName}</span>
-            </div>
-            <div className="flex items-center gap-1 min-w-0">
-              <MapPin size={10} className="text-slate-400" />
-              <span className="text-[10px] text-slate-500 truncate">{openClass.location}</span>
-            </div>
-          </div>
-
-          {/* TAGS */}
-          <div className="flex flex-wrap gap-1 mt-auto pt-2">
-            {openClass.subjects?.slice(0, 2).map((subject, i) => (
-              <span
-                key={i}
-                className="text-[8px] bg-slate-50 text-slate-500 px-2 py-0.5 rounded font-black uppercase border border-slate-100"
-              >
-                {subject}
-              </span>
-            ))}
-          </div>
+        {/* OVERLAY ON HOVER */}
+        <div className="absolute inset-0 bg-indigo-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+             <div className="bg-white p-2 rounded-full shadow-lg scale-75 group-hover:scale-100 transition-transform duration-300">
+                <Eye size={20} className="text-indigo-600" />
+             </div>
         </div>
       </div>
 
-      {/* BOTTOM SECTION: PROGRESS & ACTIONS */}
-      <div className="flex items-center gap-4 pt-2 border-t border-slate-50">
-        {/* COMPACT PROGRESS */}
-        <div className="flex-1">
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Enrollment</span>
-            <span className="text-[9px] font-bold text-slate-700">
+      {/* CONTENT */}
+      <div className="p-4 flex flex-col flex-1">
+        {/* TITLE & PRICE */}
+        <div className="flex justify-between items-start gap-3 mb-3">
+          <h2 className="text-[15px] font-extrabold text-slate-900 line-clamp-2 leading-tight group-hover:text-indigo-600 transition-colors">
+            {openClass.title}
+          </h2>
+          <div className="text-right">
+            <span className="text-lg font-black text-indigo-600">
+              ${openClass.basePrice}
+            </span>
+            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">/Session</p>
+          </div>
+        </div>
+
+        {/* TAGS */}
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {openClass.subjects?.slice(0, 2).map((sub, i) => (
+            <span
+              key={i}
+              className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-500 border border-indigo-100"
+            >
+              {sub}
+            </span>
+          ))}
+        </div>
+
+        {/* METADATA */}
+        <div className="space-y-2 mb-5">
+          <div className="flex items-center gap-2 text-slate-500">
+            <User size={14} className="text-slate-400" />
+            <span className="text-xs font-medium truncate">{openClass.tutorName}</span>
+          </div>
+          <div className="flex items-center gap-2 text-slate-400">
+            <MapPin size={14} />
+            <span className="text-xs truncate">{openClass.location}</span>
+          </div>
+        </div>
+
+        {/* PROGRESS & ACTION */}
+        <div className="mt-auto pt-4 border-t border-slate-50">
+          <div className="flex justify-between text-[11px] font-bold text-slate-400 mb-2">
+            <span className="text-slate-500">Class Capacity</span>
+            <span className={cn(isFull ? "text-rose-500" : "text-indigo-600")}>
               {openClass.currentStudents}/{openClass.maxStudents}
             </span>
           </div>
-          <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+
+          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-4">
             <div
-              className={`h-full transition-all duration-500 ease-out ${
-                enrollmentPercentage > 85 ? "bg-amber-400" : "bg-indigo-500"
-              }`}
+              className={cn(
+                "h-full transition-all duration-1000 ease-out rounded-full",
+                isFull ? "bg-slate-400" : "bg-indigo-500"
+              )}
               style={{ width: `${enrollmentPercentage}%` }}
             />
           </div>
-        </div>
 
-        {/* BUTTONS */}
-        <div className="flex gap-2">
           <Button
-            variant="ghost"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleOpen();
-            }}
-            className="h-8 w-8 p-0 rounded-lg hover:bg-slate-50 text-slate-400 hover:text-indigo-600 transition-colors"
+            onClick={handleViewDetails}
+            className="w-full h-10 text-xs font-bold rounded-xl bg-slate-900 hover:bg-indigo-600 text-white shadow-sm transition-all flex items-center justify-center gap-2"
           >
-            <Info size={16} />
-          </Button>
-          <Button
-            onClick={handleBooking}
-            disabled={openClass.status !== "OPEN"}
-            className="h-8 px-4 text-[10px] font-black uppercase rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm disabled:opacity-30 disabled:bg-slate-200 transition-all active:scale-95"
-          >
-            {openClass.status === "OPEN" ? "Book Now" : "Full"}
+            <Eye size={14} />
+            View Class Details
           </Button>
         </div>
       </div>
-    </div>
+    </article>
   );
 };
+
+export const ClassCard = memo(ClassCardComponent);

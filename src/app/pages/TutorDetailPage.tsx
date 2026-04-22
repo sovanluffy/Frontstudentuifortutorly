@@ -1,182 +1,229 @@
 import * as React from "react";
-import { useLoaderData, useNavigate } from "react-router-dom";
+import { useLoaderData } from "react-router-dom";
 import {
-  Star, Users, MessageCircle, Phone, MapPin, ShieldCheck,
-  GraduationCap, Briefcase, Layers, PlayCircle,
-  Clock, Globe, Zap, CheckCircle2, Award
+  Star,
+  Users,
+  MapPin,
+  ShieldCheck,
+  GraduationCap,
+  Briefcase,
+  PlayCircle,
+  ExternalLink,
+  Award,
+  BookOpen,
+  Loader2, // Added for the loading spinner
 } from "lucide-react";
 
-import { Badge } from "@/app/components/figma/ui/badge";
-import { Button } from "@/app/components/figma/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/figma/ui/tabs";
 import { ClassCard } from "@/app/components/ClassCard";
-import { cn } from "@/lib/utils";
 import { useClasses } from "@/hooks/useClasses";
 
 export default function TutorDetailPage() {
   const tutor = useLoaderData() as any;
-  const navigate = useNavigate();
+  const { classes, loading: classesLoading } = useClasses(tutor?.tutorId);
 
-  const [currentSlide, setCurrentSlide] = React.useState(0);
-
-  // 🔥 API HOOK
-  const { classes, loading } = useClasses(tutor.tutorId);
-
-  const profilePicUrl = tutor.profilePicture || "/fallback-avatar.png";
-
-  const slides = [
-    tutor.coverImage || "https://images.unsplash.com/photo-1513258496099-48168024adb0?q=80&w=2070",
-    "https://images.unsplash.com/photo-1522202176988-66273c2fd55f",
-    "https://images.unsplash.com/photo-1523240795612-9a054b0db644"
-  ];
-
-  React.useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [slides.length]);
+  // FULL PAGE LOADING STATE
+  if (!tutor) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
+        <p className="text-slate-500 font-medium animate-pulse">
+          Loading tutor profile, please wait...
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen pb-12 bg-[#F8FAFC]">
+    <div className="min-h-screen bg-[#F8FAFC] pb-20 font-sans">
+      {/* HEADER SECTION */}
+      <div className="bg-white border-b border-slate-200/60 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-indigo-50/50 to-transparent pointer-events-none" />
+        
+        <div className="max-w-6xl mx-auto px-6 py-10 relative">
+          <div className="flex flex-col md:flex-row gap-8 items-center md:items-end">
+            <div className="relative">
+              <img
+                src={tutor?.profilePicture}
+                alt={tutor?.fullname}
+                className="w-32 h-32 rounded-3xl object-cover border-4 border-white shadow-xl shadow-indigo-100"
+              />
+              <div className="absolute -bottom-2 -right-2 bg-green-500 border-4 border-white w-8 h-8 rounded-full shadow-sm" />
+            </div>
 
-      {/* COVER */}
-      <div className="relative h-[200px] w-full overflow-hidden bg-[#0F294D]">
-        {slides.map((img, index) => (
-          <img
-            key={index}
-            src={img}
-            className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-opacity duration-1000",
-              index === currentSlide ? "opacity-40" : "opacity-0"
-            )}
-            alt="Cover"
-          />
-        ))}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#F8FAFC] via-transparent to-transparent" />
+            <div className="flex-1 text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start gap-3">
+                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                  {tutor?.fullname}
+                </h1>
+                <div className="flex items-center gap-1 bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider">
+                  <ShieldCheck size={14} />
+                  Verified
+                </div>
+              </div>
+
+              <p className="text-slate-600 mt-3 max-w-2xl leading-relaxed font-medium">
+                {tutor?.bio}
+              </p>
+
+              <div className="flex flex-wrap justify-center md:justify-start gap-6 mt-6">
+                <div className="flex items-center gap-2">
+                  <div className="bg-amber-50 p-2 rounded-lg text-amber-500"><Star size={18} className="fill-current" /></div>
+                  <div>
+                    <p className="text-xs text-slate-400 font-bold uppercase">Rating</p>
+                    <p className="font-bold text-slate-900">{tutor?.rating ?? "5.0"}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 border-l border-slate-200 pl-6">
+                  <div className="bg-indigo-50 p-2 rounded-lg text-indigo-500"><Users size={18} /></div>
+                  <div>
+                    <p className="text-xs text-slate-400 font-bold uppercase">Students</p>
+                    <p className="font-bold text-slate-900">{tutor?.studentsTaught || 0}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 border-l border-slate-200 pl-6">
+                  <div className="bg-slate-50 p-2 rounded-lg text-slate-500"><MapPin size={18} /></div>
+                  <div>
+                    <p className="text-xs text-slate-400 font-bold uppercase">Location</p>
+                    <p className="font-bold text-slate-900">{tutor?.location || "Remote"}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="max-w-[1200px] mx-auto px-6">
-        <div className="relative -mt-16 flex flex-col lg:flex-row gap-6">
-
-          {/* LEFT */}
-          <div className="flex-1 space-y-6">
-
-            {/* HEADER */}
-            <div className="flex items-end gap-4">
-              <div className="relative shrink-0">
-                <div className="w-28 h-28 rounded-3xl overflow-hidden border-4 border-white shadow-md bg-white">
-                  <img src={profilePicUrl} className="w-full h-full object-cover" alt={tutor.fullname} />
-                </div>
-                {tutor.public && (
-                  <div className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full" />
-                )}
-              </div>
-
-              <div className="pb-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h1 className="text-2xl font-black text-slate-900">{tutor.fullname}</h1>
-                  <Badge className="bg-blue-50 text-blue-600 text-[10px] h-5 px-2">
-                    <ShieldCheck size={10} className="mr-1" /> Verified
-                  </Badge>
-                </div>
-
-                <div className="flex items-center gap-3 text-[12px] font-bold text-slate-500">
-                  <span className="flex items-center gap-1">
-                    <Star size={14} className="text-amber-400 fill-amber-400" /> {tutor.rating || "5.0"}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MapPin size={14} /> {tutor.location || "Remote"}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Users size={14} /> {tutor.studentsTaught} Students
-                  </span>
-                </div>
-              </div>
+      <div className="max-w-6xl mx-auto px-6 mt-10 grid grid-cols-1 lg:grid-cols-12 gap-10">
+        
+        {/* MAIN COLUMN */}
+        <div className="lg:col-span-8 space-y-10">
+          <section>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                Available Classes
+                <span className="bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded-full">
+                  {classes?.length || 0}
+                </span>
+              </h2>
             </div>
 
-            {/* TABS */}
-            <Tabs defaultValue="about" className="w-full">
-              <TabsList className="border-b h-9 gap-6">
-                <TabsTrigger value="about">Overview</TabsTrigger>
-                <TabsTrigger value="classes">
-                  Classes ({classes.length})
-                </TabsTrigger>
-                <TabsTrigger value="portfolio">Credentials</TabsTrigger>
-              </TabsList>
+            {classesLoading ? (
+              <div className="grid md:grid-cols-2 gap-4">
+                {[1, 2].map((i) => (
+                  <div key={i} className="h-48 bg-slate-200 animate-pulse rounded-2xl flex items-center justify-center text-slate-400 text-sm">
+                    Loading classes...
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-6">
+                {classes?.map((c: any) => (
+                  <div key={c.classId} className="transition-transform duration-300 hover:-translate-y-1">
+                    <ClassCard openClass={c} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
 
-              {/* ABOUT */}
-              <TabsContent value="about" className="space-y-6">
-                <p className="text-slate-600">{tutor.bio}</p>
-              </TabsContent>
+        {/* SIDEBAR COLUMN */}
+        <div className="lg:col-span-4 bg-slate-50/80 rounded-3xl p-4 lg:p-6 border border-slate-200/60 shadow-inner h-fit">
+          <div className="space-y-6">
+            
+            {/* ABOUT CARD */}
+            <section className="bg-white border-l-4 border-l-indigo-500 border border-slate-200 shadow-sm rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-indigo-50 p-2 rounded-xl text-indigo-600">
+                  <BookOpen size={18} />
+                </div>
+                <h2 className="text-lg font-bold text-slate-900">About Tutor</h2>
+              </div>
+              <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">
+                {tutor?.bio}
+              </p>
+            </section>
 
-              {/* 🔥 CLASSES */}
-              <TabsContent value="classes" className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                {loading ? (
-                  <p className="text-sm text-slate-400">Loading classes...</p>
-                ) : classes.length > 0 ? (
-                  classes.map((item: any) => (
-                    <div key={item.classId} className="bg-white rounded-xl p-2 border shadow-sm">
-
-                      <div className="relative">
-                        <div className="absolute top-2 left-2 bg-white px-2 py-1 text-xs font-bold rounded">
-                          ${item.basePrice}
-                        </div>
-
-                        <ClassCard openClass={item} />
-                      </div>
-
-                      <div className="p-2 flex justify-between text-xs">
-                        <span>
-                          {item.currentStudents}/{item.maxStudents}
-                        </span>
-
-                        <Button
-                          size="sm"
-                          onClick={() => navigate(`/classes/${item.classId}`)}
-                        >
-                          Open
-                        </Button>
-                      </div>
-
+            {/* EXPERIENCE */}
+            <section className="bg-white border-l-4 border-l-blue-500 border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="bg-blue-50 p-2 rounded-xl text-blue-600"><Briefcase size={18} /></div>
+                <h2 className="text-lg font-bold text-slate-900">Experience</h2>
+              </div>
+              <div className="space-y-6">
+                {tutor?.experience?.map((e: any, i: number) => (
+                  <div key={i} className="group flex gap-4 relative">
+                    {i !== tutor.experience.length - 1 && (
+                      <div className="absolute left-4 top-8 w-0.5 h-full bg-slate-100" />
+                    )}
+                    <div className="z-10 bg-white border-2 border-blue-400 w-8 h-8 rounded-full flex items-center justify-center shrink-0">
+                      <span className="text-[10px] font-bold text-blue-500">{i + 1}</span>
                     </div>
-                  ))
+                    <div className="pb-4">
+                      <p className="font-bold text-slate-900 text-sm">{e.role}</p>
+                      <p className="text-blue-500 text-xs font-medium">{e.company}</p>
+                      <p className="text-[10px] text-slate-400 mt-1 uppercase font-semibold tracking-wider">{e.duration}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* EDUCATION */}
+            <section className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
+              <div className="absolute -bottom-4 -right-4 opacity-10 rotate-12"><GraduationCap size={100} /></div>
+              <h2 className="text-lg font-bold mb-6 flex items-center gap-2 relative z-10 text-indigo-100">
+                <GraduationCap size={18} className="text-indigo-400" /> Education
+              </h2>
+              <div className="grid gap-3 relative z-10">
+                {tutor?.education?.map((e: any, i: number) => (
+                  <div key={i} className="bg-white/10 border border-white/10 p-4 rounded-xl backdrop-blur-sm">
+                    <p className="font-bold text-indigo-300 text-sm">{e.school}</p>
+                    <p className="text-slate-300 text-xs">{e.degree}</p>
+                    <span className="text-[9px] font-bold bg-indigo-500/30 text-indigo-200 px-2 py-1 rounded-md mt-2 inline-block uppercase tracking-widest">
+                      {e.year}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* INTRO VIDEO */}
+            <section className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-6">
+              <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4">Intro Video</p>
+              <div className="group relative aspect-video bg-white rounded-xl flex items-center justify-center overflow-hidden cursor-pointer border border-indigo-200 shadow-sm hover:border-indigo-400 transition-all">
+                {tutor?.introVideoUrl ? (
+                  <>
+                    <div className="absolute inset-0 bg-indigo-900/10 group-hover:bg-indigo-900/30 transition-all" />
+                    <PlayCircle className="text-indigo-600 z-10 group-hover:scale-110 transition-transform drop-shadow-md" size={44} />
+                  </>
                 ) : (
-                  <p className="text-sm text-slate-400">No classes found</p>
+                  <p className="text-sm text-indigo-300 font-medium italic">Video coming soon</p>
                 )}
+              </div>
+            </section>
 
-              </TabsContent>
-
-              {/* PORTFOLIO */}
-              <TabsContent value="portfolio">
-                <p className="text-slate-400">No credentials</p>
-              </TabsContent>
-            </Tabs>
-
-          </div>
-
-          {/* RIGHT */}
-          <div className="w-full lg:w-[300px]">
-            <div className="bg-white p-5 rounded-xl border space-y-3">
-              <Button className="w-full bg-blue-600">Send Inquiry</Button>
-
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline">
-                  <MessageCircle size={14} /> Chat
-                </Button>
-                <Button variant="outline">
-                  <Phone size={14} /> Call
-                </Button>
+            {/* CERTIFICATES */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Certificates</p>
+                <Award size={14} className="text-indigo-400" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {tutor?.certificateImages?.map((img: string, i: number) => (
+                  <div key={i} className="group relative rounded-xl overflow-hidden aspect-square border border-slate-100 ring-1 ring-slate-100 ring-offset-2">
+                    <img src={img} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-indigo-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <ExternalLink className="text-white" size={16} />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="bg-slate-900 text-white p-4 mt-4 rounded-xl">
-              <p className="text-xs">Impact</p>
-              <p className="font-bold">{tutor.studentsTaught}+ Students</p>
-            </div>
           </div>
-
         </div>
       </div>
     </div>
