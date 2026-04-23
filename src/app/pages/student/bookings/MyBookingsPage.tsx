@@ -9,8 +9,7 @@ import {
   Phone,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-
-const API_BASE = "https://toturhub-dev.onrender.com/api/v1";
+import { API_BASE } from "@/app/api/config"; // ✅ USE ENV HERE
 
 /* ================= TYPES ================= */
 interface Booking {
@@ -71,7 +70,7 @@ export default function MyBookingsPage() {
       }
 
       const data = await res.json();
-      setBookings(data);
+      setBookings(Array.isArray(data) ? data : []);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -116,78 +115,61 @@ export default function MyBookingsPage() {
 
   /* ================= ERROR ================= */
   if (error) {
-    return (
-      <div className="p-6 text-red-500 font-semibold">
-        {error}
-      </div>
-    );
+    return <div className="p-6 text-red-500 font-semibold">{error}</div>;
   }
 
   return (
     <div className="p-6 space-y-4">
-
       {/* TITLE */}
       <div className="flex items-center gap-2 text-xl font-bold">
         <CalendarCheck />
         My Bookings
       </div>
 
-      {/* ================= FILTER BUTTONS ================= */}
+      {/* FILTER */}
       <div className="flex flex-wrap gap-2">
-
         {(["ALL", "PENDING", "CONFIRMED", "CANCELLED", "COMPLETED"] as FilterType[]).map(
           (f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-full border text-sm font-semibold transition
-                ${
-                  filter === f
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white text-gray-600 hover:bg-gray-100"
-                }
-              `}
+              className={`px-4 py-2 rounded-full border text-sm font-semibold transition ${
+                filter === f
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-600 hover:bg-gray-100"
+              }`}
             >
               {f}
             </button>
           )
         )}
-
       </div>
 
-      {/* EMPTY STATE */}
+      {/* LIST */}
       {filteredBookings.length === 0 ? (
         <p className="text-gray-500">No bookings found.</p>
       ) : (
         <div className="grid gap-4">
-
           {filteredBookings.map((b) => (
             <div
               key={b.bookingId}
               className="bg-white border rounded-2xl p-5 shadow-sm space-y-3"
             >
-
               {/* HEADER */}
               <div className="flex justify-between items-start">
-
                 <div className="flex items-center gap-3">
                   <img
                     src={b.studentAvatar}
                     className="w-10 h-10 rounded-full object-cover"
                   />
-
                   <div>
-                    <h2 className="font-bold text-lg">
-                      {b.classTitle}
-                    </h2>
-
+                    <h2 className="font-bold text-lg">{b.classTitle}</h2>
                     <p className="text-xs text-gray-500">
                       {b.studentName}
                     </p>
                   </div>
                 </div>
 
-                {/* STATUS */}
                 <span
                   className={`text-xs px-3 py-1 rounded-full font-semibold ${getStatusColor(
                     b.status
@@ -212,7 +194,6 @@ export default function MyBookingsPage() {
 
               {/* CONTACT */}
               <div className="flex justify-between text-xs text-gray-500">
-
                 <div className="flex items-center gap-1">
                   <Phone size={14} />
                   {b.studentPhone}
@@ -224,12 +205,9 @@ export default function MyBookingsPage() {
                     {b.telegram}
                   </div>
                 )}
-
               </div>
-
             </div>
           ))}
-
         </div>
       )}
     </div>

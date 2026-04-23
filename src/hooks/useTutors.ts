@@ -1,5 +1,12 @@
 import { useState, useEffect } from "react";
 
+/* ================= ENV API ================= */
+const API_BASE =
+  import.meta.env?.VITE_API_BASE || "http://localhost:8080/api/v1";
+
+const API = `${API_BASE}/public/tutor-cards`;
+
+/* ================= TYPES ================= */
 export interface Tutor {
   tutorId: number;
   fullname: string;
@@ -12,14 +19,12 @@ export interface Tutor {
   totalOpenClasses: number;
 }
 
-const API = "https://toturhub-dev.onrender.com/api/v1/public/tutor-cards";
-
+/* ================= HOOK ================= */
 export function useTutors() {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // pagination state
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -31,6 +36,7 @@ export function useTutors() {
     const fetchTutors = async () => {
       try {
         setLoading(true);
+        setError(null);
 
         const res = await fetch(
           `${API}?page=${page}&size=${pageSize}`,
@@ -49,13 +55,9 @@ export function useTutors() {
 
         const result = await res.json();
 
-        // backend expected format:
-        // { data: [], totalPages: number }
         const tutorData = result.data || result;
 
         setTutors(Array.isArray(tutorData) ? tutorData : []);
-
-        // safe fallback
         setTotalPages(result.totalPages || 1);
       } catch (err: any) {
         if (err.name !== "AbortError") {
@@ -75,8 +77,6 @@ export function useTutors() {
     tutors,
     loading,
     error,
-
-    // pagination
     page,
     setPage,
     totalPages,
