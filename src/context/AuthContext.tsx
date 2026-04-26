@@ -1,96 +1,109 @@
+"use client";
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
 
 type Role = "STUDENT" | "TUTOR" | "ADMIN";
 
-/* ================= USER ================= */
 interface UserType {
   id: number;
   email: string;
+  fullname?: string;
+  avatarUrl?: string;      
+  profilePicture?: string; 
+  roles?: string[];
+  phone?: string;
+  address?: string;
 }
 
-/* ================= TOKEN ================= */
 interface DecodedToken {
   roles: string[];
-  sub: string;
+  sub: string;     
   userId: number;
+  exp: number;
 }
 
 interface AuthContextType {
   role: Role | null;
   user: UserType | null;
   isLoading: boolean;
-
-  // 🔥 ADD THIS (IMPORTANT)
   login: (token: string) => void;
   logout: () => void;
+  updateUser: (data: Partial<UserType>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/* ================= PROVIDER ================= */
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [role, setRole] = useState<Role | null>(null);
   const [user, setUser] = useState<UserType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  /* ================= LOAD TOKEN ================= */
+  // Automatically fetch detailed profile from API
+  const fetchFullProfile = async (token: string) => {
+    try {
+      const res = await fetch("https://toturhub-dev.onrender.com/api/v1/profile", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        updateUser({
+          fullname: data.fullname,
+          avatarUrl: data.avatarUrl,
+          phone: data.phone,
+          address: data.address
+        });
+      }
+    } catch (err) {
+      console.warn("Failed to fetch detailed profile");
+    }
+  };
+
   const loadToken = (token: string) => {
     try {
       const decoded = jwtDecode<DecodedToken>(token);
+      setUser({ id: decoded.userId, email: decoded.sub, roles: decoded.roles });
 
-      setUser({
-        id: decoded.userId,
-        email: decoded.sub,
-      });
+      if (decoded.roles?.includes("ADMIN")) setRole("ADMIN");
+      else if (decoded.roles?.includes("TUTOR")) setRole("TUTOR");
+      else setRole("STUDENT");
 
-      if (decoded.roles?.includes("TUTOR")) {
-        setRole("TUTOR");
-      } else if (decoded.roles?.includes("ADMIN")) {
-        setRole("ADMIN");
-      } else {
-        setRole("STUDENT");
-      }
+      // Populate extra profile details (fullname, avatar)
+      fetchFullProfile(token);
     } catch (err) {
-      console.error("Token decoding failed:", err);
-      setRole(null);
-      setUser(null);
+      logout();
     }
   };
 
-  /* ================= INIT ================= */
   useEffect(() => {
     const token = Cookies.get("token");
-
-    if (token) {
-      loadToken(token);
-    }
-
+    if (token) loadToken(token);
     setIsLoading(false);
   }, []);
 
-  /* ================= LOGIN (🔥 REAL-TIME UPDATE) ================= */
   const login = (token: string) => {
-    Cookies.set("token", token);
-    loadToken(token); // 🔥 instantly update UI (NO REFRESH)
+    Cookies.set("token", token, { expires: 7 });
+    loadToken(token);
   };
 
-  /* ================= LOGOUT ================= */
   const logout = () => {
     Cookies.remove("token");
     setRole(null);
     setUser(null);
   };
 
+  const updateUser = (data: Partial<UserType>) => {
+    setUser((prev) => (prev ? { ...prev, ...data } : null));
+  };
+
   return (
-    <AuthContext.Provider value={{ role, user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ role, user, isLoading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-/* ================= HOOK ================= */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth must be used within AuthProvider");

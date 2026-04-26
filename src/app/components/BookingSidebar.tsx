@@ -9,10 +9,10 @@ import {
   Loader2, 
   MessageSquare,
   AlertCircle,
-  CheckCircle2 // Added for success icon
+  CheckCircle2
 } from "lucide-react";
 import { Button } from "@/app/components/figma/ui/button";
-import { toast, Toaster } from "sonner"; // 1. Import Sonner
+import { toast, Toaster } from "sonner";
 
 interface Props {
   open: boolean;
@@ -40,34 +40,21 @@ export default function BookingSidebar({
   
   if (!open) return null;
 
-  // Check if the error is specifically about an existing booking
-  const isDuplicateError = error?.includes("PENDING") || error?.includes("CONFIRMED");
+  // Detect if the user is trying to book something they already requested
+  const isDuplicateError = error?.toLowerCase().includes("pending") || error?.toLowerCase().includes("confirmed");
 
-  // 2. Enhanced Submit Handler
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Only show "sending" toast if no duplicate error
-    if (!isDuplicateError) {
-      toast.loading("Sending request to tutor...", { id: "booking-status" });
+    if (!telegram.trim()) {
+      toast.error("Telegram handle is required");
+      return;
     }
-    
     onSubmit(e);
   };
 
-  // 3. Optional: Trigger toast when error changes
-  React.useEffect(() => {
-    if (error && open) {
-      toast.error("Booking failed", {
-        description: error,
-        id: "booking-status", // Replaces the loading toast
-      });
-    }
-  }, [error, open]);
-
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* TOASTER - Place this here or in your Root Layout */}
+      {/* Notifications container */}
       <Toaster position="top-center" richColors />
 
       {/* BACKDROP */}
@@ -76,38 +63,38 @@ export default function BookingSidebar({
         onClick={onClose} 
       />
 
-      {/* MODAL CONTENT */}
+      {/* MODAL CONTAINER */}
       <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
         
-        {/* HEADER */}
+        {/* TOP HEADER */}
         <div className="px-8 pt-8 pb-4 flex justify-between items-center">
           <div>
-            <h3 className="font-black text-2xl text-slate-900 tracking-tight">Complete Booking</h3>
-            <p className="text-slate-400 text-sm font-medium">Finalize your request to the tutor</p>
+            <h3 className="font-black text-2xl text-slate-900 tracking-tight leading-none mb-2">Reserve Spot</h3>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Enrollment Details</p>
           </div>
           <button 
             onClick={onClose}
             className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
-        {/* FORM BODY */}
-        <form onSubmit={handleFormSubmit} className="p-8 pt-4 space-y-6">
+        {/* FORM */}
+        <form onSubmit={handleFormSubmit} className="p-8 pt-4 space-y-5">
           
           {/* TELEGRAM INPUT */}
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">
-              <Send size={14} className="text-indigo-500" />
-              Telegram Handle
+            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-500 ml-1">
+              <Send size={12} className="text-indigo-500" />
+              Your Telegram Handle
             </label>
             <input
               required
-              disabled={isDuplicateError || loading}
+              disabled={loading || isDuplicateError}
               type="text"
-              className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all placeholder:text-slate-300 disabled:opacity-50"
-              placeholder="@yourusername"
+              className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all placeholder:text-slate-300 text-[13px] font-medium disabled:opacity-50"
+              placeholder="@username"
               value={telegram}
               onChange={(e) => setTelegram(e.target.value)}
             />
@@ -115,54 +102,49 @@ export default function BookingSidebar({
 
           {/* NOTE TEXTAREA */}
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">
-              <MessageSquare size={14} className="text-indigo-500" />
-              Note to Tutor
+            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-500 ml-1">
+              <MessageSquare size={12} className="text-indigo-500" />
+              Special Note (Optional)
             </label>
             <textarea
-              disabled={isDuplicateError || loading}
-              className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all min-h-[120px] resize-none placeholder:text-slate-300 text-sm leading-relaxed disabled:opacity-50"
-              placeholder="e.g. I want to focus on Algebra basics..."
+              disabled={loading || isDuplicateError}
+              className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all min-h-[100px] resize-none placeholder:text-slate-300 text-[13px] font-medium leading-relaxed disabled:opacity-50"
+              placeholder="Tell the tutor about your goals..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
           </div>
 
-          {/* INTERNAL ERROR BOX (KEEPING FOR EXTRA CLARITY) */}
+          {/* DYNAMIC ERROR MESSAGE */}
           {error && (
             <div className={`p-4 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-1 
               ${isDuplicateError ? "bg-amber-50 border border-amber-100 text-amber-700" : "bg-red-50 border border-red-100 text-red-600"}`}>
-              {isDuplicateError ? <AlertCircle size={18} className="shrink-0 mt-0.5" /> : <Info size={18} className="shrink-0 mt-0.5" />}
-              <p className="text-xs font-bold leading-relaxed">
+              {isDuplicateError ? <AlertCircle size={16} className="shrink-0 mt-0.5" /> : <Info size={16} className="shrink-0 mt-0.5" />}
+              <p className="text-[11px] font-bold leading-tight">
                 {isDuplicateError 
-                  ? "You already have an active request. Please wait for tutor response." 
+                  ? "You have already sent a request for this session. Please check your bookings page." 
                   : error}
               </p>
             </div>
           )}
 
-          {/* TRUST BADGE */}
+          {/* TRUST INDICATOR */}
           {!isDuplicateError && (
-            <div className="bg-emerald-50/50 p-4 rounded-2xl flex gap-3 items-center border border-emerald-100/50">
-              <div className="p-2 bg-white rounded-xl shadow-sm text-emerald-600">
-                <ShieldCheck size={20} />
-              </div>
-              <div>
-                <p className="text-[11px] font-bold text-emerald-900 uppercase tracking-tighter">Secure Request</p>
-                <p className="text-[10px] text-emerald-700/70 font-medium leading-tight">
-                  Tutor will be notified instantly of your interest.
-                </p>
-              </div>
+            <div className="bg-indigo-50/50 p-4 rounded-2xl flex gap-3 items-center border border-indigo-100/50">
+              <ShieldCheck size={18} className="text-indigo-600 shrink-0" />
+              <p className="text-[10px] text-indigo-700 font-bold leading-tight">
+                Your information is only shared with the tutor to facilitate the class connection.
+              </p>
             </div>
           )}
 
-          {/* ACTION BUTTONS */}
-          <div className="grid grid-cols-2 gap-3 pt-2">
+          {/* FOOTER BUTTONS */}
+          <div className="flex gap-3 pt-2">
             <Button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="py-6 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold border-none transition-all"
+              className="flex-1 py-6 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-black uppercase tracking-widest border-none transition-all"
             >
               {isDuplicateError ? "Close" : "Cancel"}
             </Button>
@@ -170,31 +152,30 @@ export default function BookingSidebar({
             <Button 
               type="submit" 
               disabled={loading || isDuplicateError} 
-              className={`py-6 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg transition-all ${
+              className={`flex-[1.5] py-6 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg transition-all ${
                 loading || isDuplicateError
                   ? "bg-slate-300 cursor-not-allowed shadow-none" 
-                  : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100 active:scale-95"
+                  : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100 active:scale-95 text-white"
               }`}
             >
               {loading ? (
-                <>
-                  <Loader2 className="animate-spin" size={18} />
-                  <span>Processing...</span>
-                </>
+                <Loader2 className="animate-spin" size={16} />
               ) : isDuplicateError ? (
-                "Requested"
+                "Already Requested"
               ) : (
                 <>
-                  <CheckCircle2 size={18} />
-                  <span>Confirm</span>
+                  <CheckCircle2 size={16} />
+                  <span>Confirm Booking</span>
                 </>
               )}
             </Button>
           </div>
         </form>
 
-        {/* BOTTOM DECORATION */}
-        <div className={`h-2 w-full transition-colors duration-500 ${isDuplicateError ? "bg-amber-400" : loading ? "bg-indigo-300" : "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"}`} />
+        {/* PROGRESS BAR DECORATION */}
+        <div className="flex h-1.5 w-full">
+            <div className={`h-full transition-all duration-700 ${loading ? 'w-1/2 bg-indigo-400' : isDuplicateError ? 'w-full bg-amber-400' : 'w-full bg-indigo-600'}`} />
+        </div>
       </div>
     </div>
   );

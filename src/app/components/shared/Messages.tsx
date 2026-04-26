@@ -5,9 +5,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import SockJS from "sockjs-client";
 import Stomp from "stompjs";
 import { 
-  Send, Search, User, MessageSquare, Paperclip, 
-  Mic, Square, Trash2, Check, CheckCheck, MoreVertical, 
-  Play, Pause, Smile, Image as ImageIcon, Volume2,ExternalLink
+  Send, Search, User, MessageSquare, 
+  Mic, Image as ImageIcon, Loader2, Play, Pause, 
+  ChevronLeft, MoreVertical
 } from "lucide-react";
 
 const API_BASE = "https://toturhub-dev.onrender.com/api/v1";
@@ -21,7 +21,7 @@ interface Message {
   timestamp: string;
   read: boolean;
   mediaUrl?: string;
-  messageType?: "USER" | "IMAGE" | "AUDIO" | "SYSTEM";
+  messageType?: "USER" | "IMAGE" | "AUDIO" | "SYSTEM" | "VIDEO";
 }
 
 interface ChatContact {
@@ -43,7 +43,7 @@ const decodeToken = (token: string) => {
   try { return JSON.parse(atob(token.split(".")[1])); } catch { return null; }
 };
 
-/* ================= AUDIO PLAYER COMPONENT ================= */
+/* ================= AUDIO PLAYER ================= */
 const AudioPlayer = ({ url, isMe }: { url: string; isMe: boolean }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -51,52 +51,20 @@ const AudioPlayer = ({ url, isMe }: { url: string; isMe: boolean }) => {
 
   const togglePlay = () => {
     if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play();
-      }
+      isPlaying ? audioRef.current.pause() : audioRef.current.play();
       setIsPlaying(!isPlaying);
     }
   };
 
-  const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      const current = audioRef.current.currentTime;
-      const duration = audioRef.current.duration;
-      setProgress((current / duration) * 100);
-    }
-  };
-
-  const handleEnded = () => {
-    setIsPlaying(false);
-    setProgress(0);
-  };
-
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-[24px] min-w-[220px] ${isMe ? "bg-blue-700/50" : "bg-slate-100"}`}>
-      <button 
-        type="button"
-        onClick={togglePlay}
-        className={`p-3 rounded-full transition-transform active:scale-90 shadow-md ${isMe ? "bg-white text-blue-600" : "bg-blue-600 text-white"}`}
-      >
-        {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
+    <div className={`flex items-center gap-3 p-3 rounded-[24px] min-w-[200px] ${isMe ? "bg-white/20 text-white" : "bg-slate-200 text-slate-800"}`}>
+      <button type="button" onClick={togglePlay} className={`p-2 rounded-full shadow-sm ${isMe ? "bg-white text-blue-600" : "bg-blue-600 text-white"}`}>
+        {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
       </button>
-      
-      <div className="flex-1 h-2 bg-black/10 rounded-full overflow-hidden relative">
-        <div 
-          className={`absolute top-0 left-0 h-full transition-all duration-100 ${isMe ? "bg-white" : "bg-blue-600"}`} 
-          style={{ width: `${progress}%` }}
-        />
+      <div className="flex-1 h-1.5 bg-black/10 rounded-full overflow-hidden">
+        <div className={`h-full transition-all ${isMe ? "bg-white" : "bg-blue-600"}`} style={{ width: `${progress}%` }} />
       </div>
-      
-      <audio 
-        ref={audioRef} 
-        src={url} 
-        onTimeUpdate={handleTimeUpdate} 
-        onEnded={handleEnded}
-        className="hidden" 
-      />
+      <audio ref={audioRef} src={url} onTimeUpdate={() => setProgress((audioRef.current!.currentTime / audioRef.current!.duration) * 100)} onEnded={() => setIsPlaying(false)} className="hidden" />
     </div>
   );
 };
@@ -107,12 +75,11 @@ const Messages = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const stompRef = useRef<Stomp.Client | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
 
   const token = getCookie("token");
   const userData = useMemo(() => (token ? decodeToken(token) : null), [token]);
   const currentUserId = userData?.userId;
+  const userEmail = userData?.sub; // Usually 'sub' holds the email/username in JWT
 
   const recipientId = location.state?.recipientId;
   const recipientName = location.state?.recipientName || "Chat";
@@ -124,321 +91,257 @@ const Messages = () => {
   const [connected, setConnected] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
 
   const scrollToBottom = useCallback(() => {
-    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+    setTimeout(() => {
+        scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
   }, []);
 
   useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
 
-  /* ================= API & WS ================= */
+  /* ================= FETCH INITIAL DATA ================= */
   const loadContacts = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_BASE}/chat/contacts`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`${API_BASE}/chat/contacts`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       setContacts(Array.isArray(data) ? data : []);
-    } catch (err) { console.error("Contact Load Error:", err); }
+    } catch (e) { console.error("Contacts Error:", e); }
   }, [token]);
-
-  const markAsRead = useCallback(async (senderId: number) => {
-    if (!token || !senderId) return;
-    await fetch(`${API_BASE}/chat/read/${senderId}`, {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    loadContacts();
-  }, [token, loadContacts]);
 
   const loadMessages = useCallback(async () => {
     if (!recipientId || !token) return;
-    const res = await fetch(`${API_BASE}/chat/history/${recipientId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    if (Array.isArray(data)) setMessages(data);
-    markAsRead(recipientId);
-  }, [recipientId, token, markAsRead]);
+    try {
+      const res = await fetch(`${API_BASE}/chat/history/${recipientId}`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setMessages(Array.isArray(data) ? data : []);
+      
+      // Mark as read immediately when opening the chat
+      await fetch(`${API_BASE}/chat/read/${recipientId}`, { method: "PUT", headers: { Authorization: `Bearer ${token}` } });
+      loadContacts();
+    } catch (e) { console.error("Messages Error:", e); }
+  }, [recipientId, token, loadContacts]);
 
   useEffect(() => { loadContacts(); }, [loadContacts]);
   useEffect(() => { loadMessages(); }, [loadMessages, recipientId]);
 
+  /* ================= REAL-TIME WEBSOCKET SYNC ================= */
   useEffect(() => {
     if (!token) return;
     const socket = new SockJS("https://toturhub-dev.onrender.com/ws");
     const stomp = Stomp.over(socket);
-    stomp.debug = () => {};
+    stomp.debug = () => {}; 
+    
     stomp.connect({ Authorization: `Bearer ${token}` }, () => {
       setConnected(true);
       stompRef.current = stomp;
+      
+      // SUBSCRIBE TO PRIVATE QUEUE
       stomp.subscribe("/user/queue/messages", (msg) => {
-        const data = JSON.parse(msg.body);
-        if (data.senderId === recipientId) {
-          setMessages((prev) => [...prev, data]);
-          markAsRead(data.senderId);
+        const incoming: Message = JSON.parse(msg.body);
+        
+        // 1. Update Chat Window
+        const isFromCurrentChat = (incoming.senderId === recipientId || (incoming.messageType === "SYSTEM" && incoming.senderId === recipientId));
+        const isToCurrentChat = (incoming.recipientId === recipientId);
+
+        if (isFromCurrentChat || isToCurrentChat) {
+          setMessages((prev) => {
+             const exists = prev.some(m => m.id === incoming.id);
+             return exists ? prev : [...prev, incoming];
+          });
+          
+          // Auto-mark as read if we are looking at this chat right now
+          if (incoming.senderId === recipientId) {
+             fetch(`${API_BASE}/chat/read/${recipientId}`, { method: "PUT", headers: { Authorization: `Bearer ${token}` } });
+          }
         }
-        loadContacts();
+
+        // 2. Update Sidebar Instantly
+        setContacts((prev) => {
+          const otherPartyId = incoming.senderId === currentUserId ? incoming.recipientId : incoming.senderId;
+          
+          const updated = prev.map((c) => {
+            if (c.userId === otherPartyId) {
+              return {
+                ...c,
+                lastMessage: incoming.content || "Attachment",
+                lastTime: incoming.timestamp,
+                unreadCount: (otherPartyId === recipientId || incoming.senderId === currentUserId) ? 0 : c.unreadCount + 1
+              };
+            }
+            return c;
+          });
+          return updated.sort((a, b) => new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime());
+        });
       });
-    }, () => setConnected(false));
+    });
+
     return () => { if (stomp?.connected) stomp.disconnect(() => {}); };
-  }, [token, recipientId, markAsRead, loadContacts]);
+  }, [token, recipientId, currentUserId]);
 
-  /* ================= RECORDING LOGIC ================= */
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-      audioChunksRef.current = [];
-      recorder.ondataavailable = (e) => audioChunksRef.current.push(e.data);
-      recorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mpeg' });
-        const file = new File([audioBlob], "voice_message.mp3", { type: 'audio/mpeg' });
-        handleSend(undefined, file);
-        stream.getTracks().forEach(t => t.stop());
-      };
-      recorder.start();
-      setIsRecording(true);
-      setRecordingTime(0);
-    } catch (err) { alert("Microphone access is required."); }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  useEffect(() => {
-    let interval: any;
-    if (isRecording) interval = setInterval(() => setRecordingTime(p => p + 1), 1000);
-    return () => clearInterval(interval);
-  }, [isRecording]);
-
+  /* ================= SEND ACTIONS ================= */
   const handleSend = async (e?: React.FormEvent, file?: File) => {
     if (e) e.preventDefault();
     if (!input.trim() && !file) return;
-    const url = new URL(`${API_BASE}/chat/send`);
-    url.searchParams.append("recipientId", recipientId.toString());
-    url.searchParams.append("content", input.trim() || "");
+
+    const msgContent = input.trim();
+    if (!file) setInput(""); // Clear text immediately for better UX
+
     const formData = new FormData();
-    if (file) { formData.append("file", file); setIsUploading(true); }
+    formData.append("recipientId", recipientId.toString());
+    if (msgContent) formData.append("content", msgContent);
+    if (file) { 
+        formData.append("file", file); 
+        setIsUploading(true); 
+    }
+
     try {
-      const res = await fetch(url.toString(), {
+      const res = await fetch(`${API_BASE}/chat/send`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       const newMsg = await res.json();
-      setMessages((p) => [...p, newMsg]);
-      setInput("");
+      
+      // Update UI
+      setMessages((prev) => [...prev, newMsg]);
       setIsUploading(false);
-      loadContacts();
-    } catch (err) { setIsUploading(false); }
+      
+      // Update Sidebar for "Me"
+      setContacts(prev => prev.map(c => 
+        c.userId === recipientId ? { ...c, lastMessage: msgContent || "File", lastTime: new Date().toISOString() } : c
+      ).sort((a, b) => new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime()));
+      
+    } catch (err) { 
+      setIsUploading(false); 
+      console.error("Send failed", err);
+    }
   };
 
-  const SystemAlert = ({ msg }: { msg: Message }) => {
-    const isConfirmed = msg.content.toLowerCase().includes("confirmed");
-    const isRejected = msg.content.toLowerCase().includes("rejected");
-    const cartoonImage = isConfirmed 
-      ? "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png" 
-      : isRejected 
-      ? "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Cross%20Mark.png"  
-      : "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Memo.png"; 
-
-    return (
-      <div className="flex justify-center my-14">
-        <div className="relative flex flex-col items-center p-8 rounded-[40px] bg-white border-b-[8px] border-slate-200 max-w-[320px] text-center shadow-2xl animate-in zoom-in-95 duration-500">
-          <div className="absolute -top-12 bg-white rounded-full p-2 shadow-xl border-4 border-slate-50">
-            <img src={cartoonImage} alt="status" className="w-20 h-20 object-contain animate-bounce" />
-          </div>
-          <div className="mt-8">
-            <h4 className={`text-lg font-black italic mb-2 tracking-tight ${isConfirmed ? "text-emerald-500" : isRejected ? "text-rose-500" : "text-blue-600"}`}>
-              {isConfirmed ? "AWESOME!" : isRejected ? "CANCELLED" : "NOTICE"}
-            </h4>
-            <p className="text-sm font-bold text-slate-600 bg-slate-50 p-4 rounded-3xl border border-slate-100 shadow-inner">{msg.content}</p>
-          </div>
-        </div>
+  const SystemAlert = ({ msg }: { msg: Message }) => (
+    <div className="flex justify-center my-4">
+      <div className="bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 shadow-sm">
+        <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest text-center">{msg.content}</p>
       </div>
-    );
-  };
+    </div>
+  );
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] overflow-hidden font-sans select-none text-slate-900">
+    <div className="flex h-screen bg-white font-sans">
       
       {/* SIDEBAR */}
-      <div className="w-96 bg-white border-r-[3px] border-slate-100 flex flex-col hidden md:flex z-30 shadow-2xl">
-        <div className="p-8 pb-4">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-4xl font-black tracking-tighter text-slate-800 italic">ChatBox</h2>
-            <div className="p-3 bg-blue-50 rounded-2xl text-blue-600 hover:bg-blue-600 hover:text-white transition-all cursor-pointer">
-                <MoreVertical size={20} />
-            </div>
-          </div>
+      <div className={`w-full md:w-80 lg:w-96 bg-white border-r border-slate-100 flex flex-col ${recipientId ? "hidden md:flex" : "flex"}`}>
+        <div className="p-6">
+          <h2 className="text-2xl font-black italic tracking-tighter text-slate-800 uppercase mb-6">Messages</h2>
           <div className="relative">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input 
-              type="text" placeholder="Search buddies..."
-              className="w-full bg-slate-100 border-b-[4px] border-slate-200 rounded-[24px] py-4 pl-14 pr-4 text-sm font-bold outline-none focus:bg-white transition-all"
+              type="text" placeholder="Search chats..." 
+              className="w-full bg-slate-50 rounded-2xl py-3 pl-12 text-xs font-bold outline-none border border-slate-100 focus:border-blue-300 transition-all"
               value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+        <div className="flex-1 overflow-y-auto px-4 space-y-2">
           {contacts.filter(c => c.name?.toLowerCase().includes(searchQuery.toLowerCase())).map((c) => (
             <button key={c.userId} onClick={() => navigate("/messages", { state: { recipientId: c.userId, recipientName: c.name, avatar: c.avatar } })}
-              className={`w-full text-left flex items-center gap-4 p-4 rounded-[32px] transition-all duration-300 border-b-[6px] ${recipientId === c.userId ? "bg-blue-600 text-white border-blue-800 shadow-xl -translate-y-1" : "hover:bg-slate-50 text-slate-600 border-transparent active:translate-y-0.5 active:border-b-2"}`}>
-              <div className="relative flex-shrink-0">
-                {c.avatar ? <img src={c.avatar} className="w-16 h-16 rounded-[22px] object-cover border-4 border-white/20 shadow-md" alt="" /> : <div className="w-16 h-16 rounded-[22px] bg-slate-200 flex items-center justify-center text-slate-500 font-black text-xl shadow-inner">{c.name?.charAt(0)}</div>}
-                {c.unreadCount > 0 && <div className="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] w-7 h-7 rounded-full flex items-center justify-center border-4 border-white font-black animate-pulse">{c.unreadCount}</div>}
+              className={`w-full flex items-center gap-4 p-4 rounded-3xl transition-all ${recipientId === c.userId ? "bg-blue-600 text-white shadow-lg shadow-blue-200" : "hover:bg-slate-50 text-slate-600"}`}>
+              <div className="relative shrink-0">
+                <img src={c.avatar || `https://ui-avatars.com/api/?name=${c.name}&background=random`} className="w-12 h-12 rounded-full object-cover border-2 border-white" alt="" />
+                {c.unreadCount > 0 && <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full border-2 border-white flex items-center justify-center font-black animate-bounce">{c.unreadCount}</div>}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-baseline mb-0.5">
-                  <h4 className="font-black truncate text-lg tracking-tight">{c.name}</h4>
-                  <span className="text-[10px] font-black opacity-50 uppercase tracking-widest">{c.lastTime && new Date(c.lastTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <div className="flex-1 text-left truncate">
+                <div className="flex justify-between items-center">
+                    <span className="font-black text-sm truncate">{c.name}</span>
+                    <span className="text-[9px] opacity-70 font-bold">{c.lastTime && new Date(c.lastTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                 </div>
-                <p className={`text-xs truncate font-bold italic ${recipientId === c.userId ? "text-blue-100" : "text-slate-400"}`}>{c.lastMessage || "No messages yet"}</p>
+                <p className={`text-[11px] truncate mt-0.5 font-medium ${recipientId === c.userId ? "text-blue-100" : "text-slate-400"}`}>{c.lastMessage}</p>
               </div>
             </button>
           ))}
         </div>
-
-        <div className="p-6 m-4 bg-slate-900 rounded-[35px] flex items-center gap-4 shadow-2xl border-b-[6px] border-slate-700">
-            <div className="w-12 h-12 rounded-[18px] bg-blue-500 flex items-center justify-center text-white font-black shadow-lg">ME</div>
-            <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Active Account</p>
-                <p className="text-sm text-white truncate font-black tracking-tight">{userData?.name || "User"}</p>
-            </div>
-            <ExternalLink size={20} className="text-slate-500 cursor-pointer hover:text-white transition-colors"/>
-        </div>
       </div>
 
-      {/* CHAT AREA */}
-      <div className="flex-1 flex flex-col bg-white">
+      {/* CHAT MAIN WINDOW */}
+      <div className={`flex-1 flex flex-col bg-white ${!recipientId ? "hidden md:flex" : "flex"}`}>
         {recipientId ? (
           <>
             {/* Header */}
-            <div className="px-10 py-6 flex items-center justify-between border-b-[3px] border-slate-50 bg-white/90 backdrop-blur-xl z-20">
-              <div className="flex items-center gap-5">
+            <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
+              <div className="flex items-center gap-4">
+                <button onClick={() => navigate("/messages", { state: null })} className="md:hidden p-2 text-slate-400"><ChevronLeft size={24}/></button>
                 <div className="relative">
-                  <div className="w-16 h-16 rounded-[24px] bg-slate-100 overflow-hidden shadow-xl border-b-[4px] border-slate-200">
-                    {recipientAvatar ? <img src={recipientAvatar} className="w-full h-full object-cover" alt="" /> : <User className="w-full h-full p-4 text-slate-300" />}
-                  </div>
-                  <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-4 border-white ${connected ? "bg-emerald-500 shadow-[0_0_15px_#10b981]" : "bg-slate-300 animate-pulse"}`} />
+                    <img src={recipientAvatar || `https://ui-avatars.com/api/?name=${recipientName}`} className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border shadow-sm" alt="" />
+                    <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${connected ? "bg-emerald-500" : "bg-slate-300"}`} />
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-800 text-2xl tracking-tighter italic leading-none mb-1">{recipientName}</h3>
-                  <span className="text-[11px] font-black uppercase text-slate-400 tracking-widest">{connected ? "Online Now" : "Connecting..."}</span>
+                  <h3 className="font-black text-sm md:text-base text-slate-800 leading-none mb-1">{recipientName}</h3>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{connected ? "Active Now" : "Offline"}</span>
                 </div>
               </div>
-              <div className="flex gap-3">
-                <button className="p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-[22px] transition-all border-b-[4px] border-slate-100 active:translate-y-1 active:border-b-0"><Volume2 size={22}/></button>
-                <button className="p-4 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-[22px] transition-all border-b-[4px] border-slate-100 active:translate-y-1 active:border-b-0"><Trash2 size={22}/></button>
-              </div>
+              <button className="p-2 text-slate-300 hover:text-slate-600 transition-colors"><MoreVertical size={20}/></button>
             </div>
 
-            {/* Messages Body */}
-            <div className="flex-1 overflow-y-auto px-10 py-10 space-y-12 bg-white scroll-smooth">
+            {/* Messages Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-8 space-y-6 bg-[#f8fafc]">
               {messages.map((msg, idx) => (
-                msg.messageType === "SYSTEM" ? <SystemAlert key={msg.id || idx} msg={msg} /> : (
-                  <div key={msg.id || idx} className={`flex ${msg.senderId === currentUserId ? "justify-end" : "justify-start"}`}>
-                    <div className={`group relative max-w-[70%] px-6 py-5 rounded-[40px] shadow-2xl border-b-[6px] ${
-                      msg.senderId === currentUserId 
-                      ? "bg-blue-600 text-white rounded-tr-none border-blue-800 shadow-blue-100" 
-                      : "bg-white text-slate-700 rounded-tl-none border-slate-200 shadow-slate-100"
-                    }`}>
-                      {/* Image Message */}
-                      {msg.messageType === "IMAGE" && msg.mediaUrl && (
-                        <div className="mb-4 rounded-[28px] overflow-hidden border-4 border-white/20 shadow-lg">
-                          <img src={msg.mediaUrl} className="max-h-[400px] w-full object-cover" alt="Media" />
+                msg.messageType === "SYSTEM" ? <SystemAlert key={idx} msg={msg} /> : (
+                  <div key={idx} className={`flex ${msg.senderId === currentUserId ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[85%] md:max-w-[70%] px-5 py-3 rounded-[24px] shadow-sm relative group ${msg.senderId === currentUserId ? "bg-blue-600 text-white rounded-tr-none" : "bg-white text-slate-700 rounded-tl-none border border-slate-100"}`}>
+                      {msg.messageType === "IMAGE" && (
+                        <div className="mb-2 overflow-hidden rounded-xl">
+                            <img src={msg.mediaUrl} className="max-h-80 w-full object-cover hover:scale-105 transition-transform duration-500" alt="" />
                         </div>
                       )}
-                      
-                      {/* Audio Message - Functional Clickable Player */}
-                      {msg.messageType === "AUDIO" && msg.mediaUrl && (
-                        <AudioPlayer url={msg.mediaUrl} isMe={msg.senderId === currentUserId} />
-                      )}
-
-                      {/* Text Content */}
-                      {msg.content && <p className="text-[15px] font-bold leading-tight tracking-tight mt-1">{msg.content}</p>}
-                      
-                      {/* Status Info */}
-                      <div className={`absolute -bottom-8 ${msg.senderId === currentUserId ? "right-2" : "left-2"} flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300`}>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                        {msg.senderId === currentUserId && (
-                          msg.read ? <CheckCheck size={14} className="text-blue-500" /> : <Check size={14} className="text-slate-300" />
-                        )}
+                      {msg.messageType === "AUDIO" && <AudioPlayer url={msg.mediaUrl!} isMe={msg.senderId === currentUserId} />}
+                      {msg.content && <p className="font-bold text-[13px] md:text-sm leading-relaxed">{msg.content}</p>}
+                      <div className={`text-[8px] font-black opacity-40 mt-1.5 uppercase tracking-tighter ${msg.senderId === currentUserId ? "text-right" : "text-left"}`}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                        {msg.senderId === currentUserId && (msg.read ? " • Read" : " • Sent")}
                       </div>
                     </div>
                   </div>
                 )
               ))}
-              {isUploading && <div className="text-right text-[10px] font-black text-blue-500 animate-pulse uppercase tracking-widest px-4 italic">Tossing file into chat...</div>}
-              <div ref={scrollRef} className="h-4" />
+              <div ref={scrollRef} className="h-2" />
             </div>
 
-            {/* Input Claymorphism Bar */}
-            <div className="p-8 bg-white">
-              <form onSubmit={handleSend} className="flex items-center gap-4 max-w-5xl mx-auto">
-                {isRecording ? (
-                  <div className="flex-1 flex items-center gap-4 bg-rose-50 text-rose-600 p-3 rounded-[35px] border-b-[6px] border-rose-200">
-                    <div className="w-5 h-5 rounded-full bg-rose-600 animate-ping ml-5" />
-                    <span className="text-sm font-black italic flex-1 uppercase tracking-tight">Capturing Voice: {Math.floor(recordingTime / 60)}:{String(recordingTime % 60).padStart(2, '0')}</span>
-                    <button type="button" onClick={() => setIsRecording(false)} className="p-3 hover:bg-rose-100 rounded-full text-rose-400 transition-colors"><Trash2 size={22} /></button>
-                    <button type="button" onClick={stopRecording} className="bg-rose-600 text-white p-5 rounded-full shadow-xl border-b-[5px] border-rose-900 active:translate-y-1 active:border-b-0 transition-all"><Square size={20} fill="white"/></button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2 bg-slate-100 p-2 rounded-[35px] border-b-[5px] border-slate-200">
-                      <button type="button" onClick={() => fileInputRef.current?.click()} className="p-4 text-slate-500 hover:bg-white hover:text-blue-600 rounded-full transition-all shadow-sm">
-                        <ImageIcon size={24} />
-                      </button>
-                      <button type="button" onClick={startRecording} className="p-4 text-slate-500 hover:bg-white hover:text-blue-600 rounded-full transition-all shadow-sm">
-                        <Mic size={24} />
-                      </button>
-                    </div>
-
-                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*,audio/*" onChange={(e) => e.target.files?.[0] && handleSend(undefined, e.target.files[0])} />
-                    
-                    <div className="flex-1 relative">
-                      <input 
-                        value={input} onChange={(e) => setInput(e.target.value)} 
-                        placeholder="Say something cool..." 
-                        className="w-full px-8 py-5 bg-slate-100 rounded-[35px] border-b-[6px] border-slate-200 outline-none text-[16px] font-bold text-slate-700 focus:bg-white focus:border-blue-200 transition-all placeholder:text-slate-300" 
-                      />
-                      <button type="button" className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-yellow-500 transition-colors"><Smile size={26}/></button>
-                    </div>
-
-                    <button type="submit" disabled={!input.trim() && !isUploading} 
-                            className="bg-blue-600 text-white p-7 rounded-[35px] shadow-2xl shadow-blue-200 hover:scale-105 active:scale-95 disabled:opacity-20 transition-all border-b-[6px] border-blue-900">
-                      <Send size={26} fill="white" />
+            {/* Input Footer */}
+            <div className="p-4 md:p-6 bg-white border-t border-slate-100">
+              <form onSubmit={handleSend} className="flex gap-2 md:gap-4 max-w-6xl mx-auto items-end">
+                <div className="flex gap-1 mb-1">
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 bg-slate-50 rounded-full text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                        {isUploading ? <Loader2 className="animate-spin" size={20} /> : <ImageIcon size={20}/>}
                     </button>
-                  </>
-                )}
+                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*,audio/*,video/*" onChange={(e) => e.target.files?.[0] && handleSend(undefined, e.target.files[0])} />
+                </div>
+                
+                <div className="flex-1 relative">
+                    <textarea 
+                        rows={1}
+                        value={input} 
+                        onChange={(e) => setInput(e.target.value)} 
+                        onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                        placeholder="Write a message..." 
+                        className="w-full px-6 py-3 bg-slate-50 border border-transparent focus:border-blue-200 focus:bg-white rounded-3xl font-bold text-sm outline-none transition-all resize-none overflow-hidden" 
+                    />
+                </div>
+
+                <button type="submit" disabled={!input.trim() && !isUploading} className="bg-blue-600 text-white p-4 rounded-full font-black shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-90 transition-all disabled:opacity-50 disabled:shadow-none mb-0.5">
+                    <Send size={18} />
+                </button>
               </form>
             </div>
           </>
         ) : (
-          /* Empty State */
-          <div className="flex-1 flex flex-col items-center justify-center space-y-10 bg-[#F8FAFC]">
-             <div className="relative">
-                <div className="w-52 h-52 bg-white rounded-[70px] flex items-center justify-center text-blue-600 border-b-[18px] border-slate-200 shadow-2xl animate-in zoom-in-75 duration-700">
-                    <MessageSquare size={90} className="animate-pulse" />
-                </div>
-                <div className="absolute -top-6 -right-6 w-24 h-24 bg-yellow-400 rounded-full border-[10px] border-white animate-bounce shadow-2xl flex items-center justify-center text-4xl">👋</div>
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-200 bg-[#f8fafc]">
+             <div className="bg-white p-12 rounded-[40px] shadow-sm border border-slate-50 mb-6">
+                <MessageSquare size={100} strokeWidth={1} className="text-blue-100" />
              </div>
-             <div className="text-center px-12">
-                <h3 className="text-5xl font-black text-slate-800 tracking-tighter italic uppercase mb-4">Inbox Magic</h3>
-                <p className="text-slate-400 text-lg font-bold max-w-sm leading-tight uppercase tracking-[0.2em]">Pick a contact from the sidebar to begin your journey!</p>
-             </div>
+             <h3 className="text-xl font-black uppercase tracking-widest italic text-slate-400">Select a connection</h3>
+             <p className="text-slate-300 font-bold text-sm mt-2">Pick a person from the left to start chatting</p>
           </div>
         )}
       </div>
