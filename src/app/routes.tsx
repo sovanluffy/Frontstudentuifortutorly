@@ -20,16 +20,15 @@ import Messages from "@/app/components/shared/Messages";
 // ================= TUTOR =================
 import CreateOpenClassPage from "@/app/pages/tutor/create-class/create-class";
 import TutorBookingPage from "@/app/pages/tutor/booking/TutorBookingList";
-import TutorDashboard from "@/app/pages/TutorDashboard";
+import TutorDashboard from "@/app/pages/tutor/Dashboard";
 import MyClassesPage from "@/app/pages/tutor/classes/MyClassesPage";
+import TutorEditPage from "@/app/pages/tutor/edit/TutorEditPage"; // ← added
 
 // ================= AUTH =================
 import Login from "@/app/components/auth/Login";
 import Signup from "@/app/components/auth/Signup";
 
 // ================= GUARDS =================
-// Note: If you have a general "AuthRoute" for both Student and Tutor, use that.
-// Otherwise, using StudentRoute usually checks for a valid token.
 import { TutorRoute, StudentRoute } from "@/utils/authGuard";
 
 // ================= NOTIFICATIONS =================
@@ -94,7 +93,7 @@ export const router = createBrowserRouter([
 
       /* ================= TUTOR PROTECTED ================= */
       {
-        path: "tutor/dashboard",
+        path: "tutor/Dashboard",
         element: (
           <TutorRoute>
             <TutorDashboard />
@@ -118,6 +117,14 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: "tutor/edit/:id",          // ← added
+        element: (
+          <TutorRoute>
+            <TutorEditPage />
+          </TutorRoute>
+        ),
+      },
+      {
         path: "tutor/manage",
         element: (
           <TutorRoute>
@@ -126,14 +133,11 @@ export const router = createBrowserRouter([
         ),
       },
 
-      /* ================= SHARED PROTECTED ROUTES ================= 
-         We wrap these in StudentRoute (or your generic Auth guard) 
-         to ensure only logged-in users can access them.
-      */
+      /* ================= SHARED PROTECTED ROUTES ================= */
       {
         path: "messages",
         element: (
-          <StudentRoute> 
+          <StudentRoute>
             <Messages />
           </StudentRoute>
         ),

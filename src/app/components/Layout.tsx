@@ -6,9 +6,20 @@ import { Navbar } from "./Navbar";
 import { Sidebar } from "./Sidebar";
 
 export function Layout() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { pathname } = useLocation();
 
+  // Open by default on desktop, closed on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSidebarOpen(window.innerWidth >= 1024);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Auto-close on mobile when navigating
   useEffect(() => {
     if (window.innerWidth < 1024) {
       setIsSidebarOpen(false);
@@ -16,38 +27,45 @@ export function Layout() {
   }, [pathname]);
 
   return (
-    <div className="flex h-screen w-full bg-[#F8FAFC] text-slate-900">
-      {/* Mobile Overlay */}
+    <div className="flex h-screen w-full bg-[#F8FAFC] overflow-hidden text-slate-900">
+
+      {/* Mobile overlay */}
       {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden"
+        <div
+          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px] lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
-      <aside className={`
-        fixed inset-y-0 left-0 z-50 transition-transform duration-300 ease-in-out lg:relative
-        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:hidden"}
-      `}>
+      {/* Sidebar
+          Mobile  → fixed overlay, slides in/out
+          Desktop → inline static panel
+      */}
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50
+          lg:relative lg:z-auto lg:shrink-0
+          transition-transform duration-300 ease-in-out
+          ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          ${!isSidebarOpen ? "lg:hidden" : "lg:translate-x-0"}
+        `}
+      >
         <Sidebar isOpen={isSidebarOpen} />
       </aside>
 
-      {/* Main Content Area */}
+      {/* Main */}
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
-        <Navbar 
-          onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
+        <Navbar
+          onToggle={() => setIsSidebarOpen(prev => !prev)}
           isSidebarOpen={isSidebarOpen}
         />
-        
-        {/* CHANGED: Removed p-4 md:p-6 lg:p-8 to delete outer spacing */}
         <main className="flex-1 overflow-y-auto">
-          {/* CHANGED: Removed max-w-7xl and mx-auto to use full width */}
           <div className="w-full">
             <Outlet />
           </div>
         </main>
       </div>
+
     </div>
   );
 }

@@ -3,22 +3,16 @@
 import * as React from "react";
 import {
   Menu,
-  Globe,
-  Smartphone,
   LogOut,
-  ChevronRight,
   ChevronDown,
-  Check
+  Check,
+  X,
 } from "lucide-react";
 import { AuthModal } from "./AuthModal";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-
-// --- FIXED IMPORT PATH ---
-// Adjust this path to exactly where your file is. 
-// If Navbar is in src/app/components/ and image is in src/image/
-import logo from "@/image/logogo.png"; 
+import logo from "@/image/logogo.png";
 
 interface NavbarProps {
   onToggle: () => void;
@@ -28,18 +22,16 @@ interface NavbarProps {
 export const Navbar = ({ onToggle, isSidebarOpen }: NavbarProps) => {
   const [isAuthOpen, setIsAuthOpen] = React.useState(false);
   const [isLangOpen, setIsLangOpen] = React.useState(false);
-  
+
   const { user, logout, isLoading } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const navigate = useNavigate();
-
   const langRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (langRef.current && !langRef.current.contains(event.target as Node)) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node))
         setIsLangOpen(false);
-      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -50,11 +42,6 @@ export const Navbar = ({ onToggle, isSidebarOpen }: NavbarProps) => {
   const userRole = user?.roles?.[0] || "Student";
   const initial = fullName.charAt(0).toUpperCase();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-  };
-
   const languages = [
     { code: "KH", name: "ភាសាខ្មែរ", flag: "🇰🇭" },
     { code: "EN", name: "English", flag: "🇺🇸" },
@@ -64,113 +51,115 @@ export const Navbar = ({ onToggle, isSidebarOpen }: NavbarProps) => {
 
   return (
     <>
-      <nav className="w-full bg-white/95 backdrop-blur-md border-b border-slate-200/60 px-3 md:px-6 py-1.5 flex items-center justify-between sticky top-0 h-16 z-[100]">
-        
-        {/* LEFT: Menu & Branding */}
-        <div className="flex items-center gap-3">
+      <nav className="w-full h-14 md:h-16 bg-white border-b border-slate-100/80 px-3 md:px-6 flex items-center justify-between sticky top-0 z-[100]">
+
+        {/* LEFT — toggle + logo */}
+        <div className="flex items-center gap-2 md:gap-3 min-w-0">
           <button
             onClick={onToggle}
-            className={`p-2 rounded-xl transition-all duration-200 ${
-              isSidebarOpen ? "bg-indigo-50 text-indigo-600" : "text-slate-600 hover:bg-slate-100"
-            }`}
+            aria-label="Toggle sidebar"
+            className={`
+              w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-xl transition-all duration-200 shrink-0
+              ${isSidebarOpen
+                ? "bg-[#0F294D] text-white"
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+              }
+            `}
           >
-            <Menu size={22} />
+            {isSidebarOpen ? <X size={17} /> : <Menu size={17} />}
           </button>
 
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="flex items-center gap-2.5">
-              <img 
-                src={logo} 
-                alt="Logo" 
-                className="w-9 h-9 object-contain rounded-lg" 
+          {/* Logo — visible only when sidebar is closed */}
+          <div
+            className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${
+              isSidebarOpen
+                ? "max-w-0 opacity-0 pointer-events-none"
+                : "max-w-[180px] opacity-100"
+            }`}
+          >
+            <Link to="/" className="flex items-center gap-2 group whitespace-nowrap">
+              <img
+                src={logo}
+                alt="TutorHub"
+                className="w-7 h-7 md:w-8 md:h-8 object-contain rounded-lg shrink-0"
               />
-              <span className="text-xl md:text-2xl font-black text-[#0066FF] tracking-tight group-hover:opacity-80 transition">
+              <span className="text-[16px] md:text-[18px] font-black tracking-tight text-[#0066FF] group-hover:opacity-75 transition">
                 Tutor<span className="text-[#0F294D]">Hub</span>
               </span>
-            </div>
-          </Link>
+            </Link>
+          </div>
         </div>
 
-        {/* RIGHT: Actions */}
-        <div className="flex items-center gap-2 md:gap-5">
-          <div className="hidden sm:flex items-center gap-4 text-sm font-semibold text-slate-600">
-            
-            {/* Language Switcher */}
-            <div className="relative" ref={langRef}>
-              <button 
-                onClick={() => setIsLangOpen(!isLangOpen)}
-                className="hover:text-indigo-600 transition flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 active:scale-95"
-              >
-                <span className="text-base leading-none">
-                  {languages.find(l => l.code === language)?.flag}
-                </span>
-                <span className="hidden xl:inline uppercase tracking-wider text-[11px] font-black">
-                  {language === "KH" ? "ភាសាខ្មែរ" : "English"}
-                </span>
-                <ChevronDown size={12} className={`transition-transform duration-200 ${isLangOpen ? "rotate-180" : ""}`} />
-              </button>
+        {/* RIGHT — language + auth only */}
+        <div className="flex items-center gap-1.5 md:gap-2">
 
-              {isLangOpen && (
-                <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl shadow-slate-200/50 border border-slate-100 py-2 z-[110] overflow-hidden">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => {
-                        setLanguage(lang.code as "EN" | "KH");
-                        setIsLangOpen(false);
-                      }}
-                      className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-indigo-50 transition-colors group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg">{lang.flag}</span>
-                        <span className={`text-sm font-bold ${language === lang.code ? "text-indigo-600" : "text-slate-600"}`}>
-                          {lang.name}
-                        </span>
-                      </div>
-                      {language === lang.code && <Check size={16} className="text-indigo-600" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+          {/* Language switcher */}
+          <div className="relative" ref={langRef}>
+            <button
+              onClick={() => setIsLangOpen(!isLangOpen)}
+              className="flex items-center gap-1.5 h-8 md:h-9 px-2.5 md:px-3 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-all text-[12px] font-semibold"
+            >
+              <span className="text-base leading-none">
+                {languages.find(l => l.code === language)?.flag}
+              </span>
+              <span className="hidden md:inline text-[12px]">
+                {language === "KH" ? "ភាសាខ្មែរ" : "English"}
+              </span>
+              <ChevronDown size={12} className={`transition-transform duration-200 ${isLangOpen ? "rotate-180" : ""}`} />
+            </button>
 
-            <button className="hover:text-indigo-600 transition flex items-center gap-1.5">
-              <Smartphone size={16} /> <span className="hidden xl:inline">{t("កម្មវិធី", "App")}</span>
-            </button>
-            <button className="hover:text-indigo-600 transition flex items-center gap-1.5">
-              <Globe size={16} /> <span className="hidden xl:inline">USD</span>
-            </button>
+            {isLangOpen && (
+              <div className="absolute top-full right-0 mt-1.5 w-44 bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-100 py-1.5 z-[110] overflow-hidden">
+                {languages.map(lang => (
+                  <button
+                    key={lang.code}
+                    onClick={() => { setLanguage(lang.code as "EN" | "KH"); setIsLangOpen(false); }}
+                    className="w-full flex items-center justify-between px-3.5 py-2.5 hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-base">{lang.flag}</span>
+                      <span className={`text-[12px] font-semibold ${language === lang.code ? "text-blue-600" : "text-slate-600"}`}>
+                        {lang.name}
+                      </span>
+                    </div>
+                    {language === lang.code && <Check size={13} className="text-blue-500" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
+          {/* Auth */}
           {user ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <Link
                 to="/profile"
-                className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 p-1 pr-3 rounded-full border border-slate-200 transition-all group"
+                className="flex items-center gap-2 h-8 md:h-9 pl-1.5 pr-2 md:pr-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-100 transition-all"
               >
-                <div className="relative w-8 h-8 shrink-0 overflow-hidden rounded-full border border-white shadow-sm">
+                <div className="w-5 h-5 md:w-6 md:h-6 rounded-lg overflow-hidden shrink-0 bg-indigo-100 flex items-center justify-center">
                   {avatarImage ? (
                     <img src={avatarImage} alt={fullName} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold uppercase">
-                      {initial}
-                    </div>
+                    <span className="text-[9px] md:text-[10px] font-bold text-indigo-600 uppercase">{initial}</span>
                   )}
                 </div>
-                <div className="hidden xs:flex flex-col items-start leading-none pr-1">
-                  <span className="text-xs font-bold text-slate-800 line-clamp-1 max-w-[100px]">{fullName}</span>
-                  <span className="text-[9px] text-slate-500 uppercase font-bold mt-0.5 tracking-wider">{userRole}</span>
+                <div className="hidden sm:flex flex-col leading-none">
+                  <span className="text-[11px] font-bold text-slate-800 line-clamp-1 max-w-[90px]">{fullName}</span>
+                  <span className="text-[9px] text-slate-400 uppercase font-semibold tracking-wider mt-0.5">{userRole}</span>
                 </div>
-                <ChevronRight size={14} className="text-slate-400 group-hover:translate-x-0.5 transition" />
               </Link>
-              <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition">
-                <LogOut size={20} />
+              <button
+                onClick={() => { logout(); navigate("/"); }}
+                className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                aria-label="Sign out"
+              >
+                <LogOut size={16} />
               </button>
             </div>
           ) : (
             <button
               onClick={() => setIsAuthOpen(true)}
-              className="bg-blue-600 text-white px-5 py-2 md:px-8 md:py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition active:scale-95 shadow-lg shadow-blue-100"
+              className="h-8 md:h-9 px-3.5 md:px-5 bg-[#0066FF] hover:bg-blue-700 text-white text-[11px] md:text-[12px] font-bold rounded-xl transition-all shadow-sm shadow-blue-200 active:scale-[0.97] whitespace-nowrap"
             >
               {t("ចូលប្រើ", "Sign in")}
             </button>
