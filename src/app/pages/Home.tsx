@@ -29,6 +29,64 @@ import { ClassListingCard } from "../components/listClass/ClassCard";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "https://toturhub-dev.onrender.com/api/v1";
 
+// hooks/useOpenClasses.ts
+// Add startDate, endDate, durationValue, durationType to the OpenClass type
+
+export interface OpenClass {
+  classId: number;
+  title: string;
+  description?: string;
+  classImage?: string;
+  status?: string;
+  visibilityStatus?: string;
+
+  // ── schedule ──
+  startDate?: string | null;
+  endDate?: string | null;
+  durationType?: string | null;
+  durationValue?: number | null;
+
+  // ── tutor ──
+  tutor?: {
+    tutorId?: number;
+    name?: string;
+    avatar?: string;
+    rating?: number;
+    email?: string;
+    phone?: string;
+  };
+
+  // ── location ──
+  location?: string;
+  specificAddress?: string;
+
+  // ── class info ──
+  subjects?: string[];
+  learningModes?: string[];
+  basePrice?: number;
+  maxStudents?: number;
+  currentStudents?: number;
+
+  // ── students ──
+  confirmedStudents?: { avatar?: string; name?: string }[];
+
+  // ── weekly schedule ──
+  schedules?: {
+    id?: number;
+    day: string;
+    startTime: string;
+    endTime: string;
+    maxStudents?: number;
+    bookedCount?: number;
+  }[];
+
+  // ── misc ──
+  createdAt?: string | null;
+  newUntil?: string | null;
+  isCopy?: boolean | null;
+  originalClassId?: number | null;
+  new?: boolean;
+}
 type LearningMode = "ONLINE" | "STUDENT_HOME" | "TUTOR_CLASS" | "OUTSIDE" | "ALL";
 
 const INTRO_SLIDES = [

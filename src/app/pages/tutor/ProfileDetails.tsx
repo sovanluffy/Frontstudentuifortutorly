@@ -1,5 +1,7 @@
+"use client";
+
 import React from "react";
-import { GraduationCap, Briefcase, Quote } from "lucide-react";
+import { GraduationCap, Briefcase, FileText } from "lucide-react";
 
 interface ProfileDetailsProps {
   tutor: {
@@ -19,102 +21,109 @@ interface ProfileDetailsProps {
 
 export function ProfileDetails({ tutor }: ProfileDetailsProps) {
   return (
-    <div className="space-y-6">
-      
+    <div className="space-y-3">
+
       {/* BIO */}
-      <section className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-2 mb-3 text-slate-500">
-          <Quote size={16} />
-          <p className="text-xs font-semibold uppercase tracking-wide">
-            Profile
-          </p>
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-gray-100">
+          <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+            <FileText size={15} className="text-blue-600" />
+          </div>
+          <h2 className="text-[15px] font-semibold text-gray-900">Intro</h2>
+        </div>
+        <div className="px-4 py-4">
+          {tutor?.bio ? (
+            <p className="text-[14px] text-gray-600 leading-relaxed text-center">
+              {tutor.bio}
+            </p>
+          ) : (
+            <p className="text-[13px] text-gray-400 text-center italic py-1">
+              No biography provided yet.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* EDUCATION */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-gray-100">
+          <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+            <GraduationCap size={15} className="text-blue-600" />
+          </div>
+          <h2 className="text-[15px] font-semibold text-gray-900">Education</h2>
         </div>
 
-        <p className="text-sm text-slate-700 leading-relaxed">
-          {tutor?.bio || "No biography provided yet."}
-        </p>
-      </section>
-
-      {/* GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        {/* EDUCATION */}
-        <section className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <GraduationCap size={16} className="text-indigo-500" />
-            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
-              Education
-            </p>
-          </div>
-
-          {tutor?.education && tutor.education.length > 0 ? (
-            <div className="space-y-4">
-              {tutor.education.map((edu, i) => (
-                <div key={i} className="flex gap-3">
-                  
-                  {/* timeline dot */}
-                  <div className="mt-1 w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
-
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">
-                      {edu.degree}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {edu.school}
-                    </p>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      {edu.year}
-                    </p>
-                  </div>
+        {tutor?.education && tutor.education.length > 0 ? (
+          <div className="divide-y divide-gray-50">
+            {tutor.education.map((edu, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+              >
+                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
+                  <GraduationCap size={17} className="text-blue-600" />
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-slate-400 text-sm italic">
-              No education history added.
-            </p>
-          )}
-        </section>
-
-        {/* EXPERIENCE */}
-        <section className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <Briefcase size={16} className="text-indigo-500" />
-            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
-              Experience
-            </p>
-          </div>
-
-          {tutor?.experience && tutor.experience.length > 0 ? (
-            <div className="space-y-4">
-              {tutor.experience.map((exp, i) => (
-                <div key={i} className="flex gap-3">
-                  
-                  {/* timeline dot */}
-                  <div className="mt-1 w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">
-                      {exp.role}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {exp.company}
-                    </p>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      {exp.duration}
-                    </p>
-                  </div>
+                <div>
+                  <p className="text-[14px] font-semibold text-gray-900 leading-snug">
+                    {edu.degree}
+                  </p>
+                  <p className="text-[13px] text-blue-600 font-medium mt-0.5">
+                    {edu.school}
+                  </p>
+                  <p className="text-[12px] text-gray-400 mt-0.5">
+                    {edu.year}
+                  </p>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-slate-400 text-sm italic">
-              No experience history added.
-            </p>
-          )}
-        </section>
-
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[13px] text-gray-400 italic text-center py-4 px-4">
+            No education history added.
+          </p>
+        )}
       </div>
+
+      {/* EXPERIENCE */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-gray-100">
+          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+            <Briefcase size={15} className="text-gray-500" />
+          </div>
+          <h2 className="text-[15px] font-semibold text-gray-900">Work experience</h2>
+        </div>
+
+        {tutor?.experience && tutor.experience.length > 0 ? (
+          <div className="divide-y divide-gray-50">
+            {tutor.experience.map((exp, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+              >
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <Briefcase size={17} className="text-gray-500" />
+                </div>
+                <div>
+                  <p className="text-[14px] font-semibold text-gray-900 leading-snug">
+                    {exp.role}
+                  </p>
+                  <p className="text-[13px] text-blue-600 font-medium mt-0.5">
+                    {exp.company}
+                  </p>
+                  <p className="text-[12px] text-gray-400 mt-0.5">
+                    {exp.duration}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[13px] text-gray-400 italic text-center py-4 px-4">
+            No experience history added.
+          </p>
+        )}
+      </div>
+
     </div>
   );
 }

@@ -7,12 +7,15 @@ import Cookies from "js-cookie";
 import { Layout } from "./components/Layout";
 
 // ================= PAGES =================
-import  Home  from "./pages/Home";
+import Home from "./pages/Home";
 import MyBookings from "./pages/student/bookings/MyBookingsPage";
 import Profile from "./pages/Profile";
 import TutorDetailPage from "./pages/TutorDetailPage";
 import ClassDetailPage from "./pages/ClassDetailPage";
 import NotFound from "./pages/NotFound";
+
+// ================= STUDENT PAGES =================
+import StudentMyClassesPage from "@/app/pages/student/my-classes/StudentMyClassesPage"; // ← NEW (separate file)
 
 // ================= CHAT =================
 import Messages from "@/app/components/shared/Messages";
@@ -21,8 +24,8 @@ import Messages from "@/app/components/shared/Messages";
 import CreateOpenClassPage from "@/app/pages/tutor/create-class/create-class";
 import TutorBookingPage from "@/app/pages/tutor/booking/TutorBookingList";
 import TutorDashboard from "@/app/pages/tutor/Dashboard";
-import MyClassesPage from "@/app/pages/tutor/classes/MyClassesPage";
-import TutorEditPage from "@/app/pages/tutor/edit/TutorEditPage"; // ← added
+import TutorMyClassesPage from "@/app/pages/tutor/classes/MyClassesPage";
+import TutorEditPage from "@/app/pages/tutor/edit/TutorEditPage";
 
 // ================= AUTH =================
 import Login from "@/app/components/auth/Login";
@@ -81,7 +84,7 @@ export const router = createBrowserRouter([
         element: <ClassDetailPage />,
       },
 
-      /* ================= STUDENT PROTECTED ================= */
+      /* ================= STUDENT PROTECTED ROUTES ================= */
       {
         path: "student/bookings",
         element: (
@@ -91,7 +94,16 @@ export const router = createBrowserRouter([
         ),
       },
 
-      /* ================= TUTOR PROTECTED ================= */
+      {
+        path: "student/my-classes",
+        element: (
+          <StudentRoute>
+            <StudentMyClassesPage />
+          </StudentRoute>
+        ),
+      },
+
+      /* ================= TUTOR PROTECTED ROUTES ================= */
       {
         path: "tutor/Dashboard",
         element: (
@@ -112,12 +124,12 @@ export const router = createBrowserRouter([
         path: "tutor/classes",
         element: (
           <TutorRoute>
-            <MyClassesPage />
+            <TutorMyClassesPage />
           </TutorRoute>
         ),
       },
       {
-        path: "tutor/edit/:id",          // ← added
+        path: "tutor/edit/:id",
         element: (
           <TutorRoute>
             <TutorEditPage />

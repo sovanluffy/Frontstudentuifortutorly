@@ -56,7 +56,7 @@ export function HeroSearchBanner({ onResultsFound }: { onResultsFound?: (data: a
     const fetchData = async () => {
       try {
         const [subRes, locRes] = await Promise.all([
-          fetch('https://toturhub-dev.onrender.com/api/subjects'),
+          fetch('https://toturhub-dev.onrender.com/api/v1/subjects'),
           fetch('https://toturhub-dev.onrender.com/api/v1/locations')
         ]);
         setSubjects(await subRes.json());

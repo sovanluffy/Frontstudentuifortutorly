@@ -25,37 +25,51 @@ export interface StudentPreview {
 export interface OpenClass {
   classId: number;
   title: string;
-  description: string;
-  status: string;
+  description?: string;
+  classImage?: string | null;
 
+  status?: string;
   visibilityStatus?: string | null;
 
-  tutor: {
-    tutorId: number;
-    name: string;
+  // Date & Duration
+  startDate?: string | null;
+  endDate?: string | null;
+  durationType?: string | null;
+  durationValue?: number | null;
+
+  // Tutor
+  tutor?: {
+    tutorId?: number;
+    name?: string;
     avatar?: string | null;
-    rating: number;
+    rating?: number;
     email?: string;
     phone?: string;
   };
 
-  location: string;
-  specificAddress: string;
+  // Location
+  location?: string;
+  specificAddress?: string;
 
-  subjects: string[];
-  learningModes: string[];
+  // Class Info
+  subjects?: string[];
+  learningModes?: string[];
+  basePrice?: number;
+  maxStudents?: number;
+  currentStudents?: number;
 
-  basePrice: number;
-  maxStudents: number;
-  currentStudents: number;
-
-  classImage?: string | null;
-
-  schedules: Schedule[];
-
-  isNew: boolean;
-
+  // Students
   confirmedStudents?: StudentPreview[];
+
+  // Weekly Schedule
+  schedules?: Schedule[];
+
+  // Misc
+  createdAt?: string | null;
+  newUntil?: string | null;
+  isCopy?: boolean | null;
+  originalClassId?: number | null;
+  isnew: boolean;           // ← Keep consistent with your original
 }
 
 /* ================= HOOK ================= */
@@ -68,17 +82,23 @@ export function useOpenClasses() {
     classId: item.classId,
     title: item.title ?? "Untitled",
     description: item.description ?? "",
-    status: item.status ?? "",
+    classImage: item.classImage ?? null,
 
+    status: item.status ?? "",
     visibilityStatus: item.visibilityStatus ?? null,
+
+    startDate: item.startDate ?? null,
+    endDate: item.endDate ?? null,
+    durationType: item.durationType ?? null,
+    durationValue: item.durationValue ?? null,
 
     tutor: {
       tutorId: item.tutor?.tutorId ?? 0,
-      name: item.tutor?.name ?? "Unknown",
+      name: item.tutor?.name ?? "Unknown Tutor",
       avatar: item.tutor?.avatar ?? null,
       rating: item.tutor?.rating ?? 0,
-      email: item.tutor?.email,
-      phone: item.tutor?.phone,
+      email: item.tutor?.email ?? "",
+      phone: item.tutor?.phone ?? "",
     },
 
     location: item.location ?? "",
@@ -91,13 +111,17 @@ export function useOpenClasses() {
     maxStudents: item.maxStudents ?? 0,
     currentStudents: item.currentStudents ?? 0,
 
-    classImage: item.classImage ?? null,
-
     schedules: item.schedules ?? [],
 
-    isNew: item.isNew ?? item.new ?? false,
-
     confirmedStudents: item.confirmedStudents ?? [],
+
+    // Fixed: Use 'isnew' to match the interface
+    isnew: item.isNew ?? item.new ?? item.isnew ?? false,
+
+    createdAt: item.createdAt ?? null,
+    newUntil: item.newUntil ?? null,
+    isCopy: item.isCopy ?? null,
+    originalClassId: item.originalClassId ?? null,
   });
 
   const fetchClasses = useCallback(async () => {
@@ -113,7 +137,8 @@ export function useOpenClasses() {
 
       setClasses(mapped);
     } catch (err: any) {
-      setError(err?.message || "Failed to load classes");
+      console.error("Error fetching open classes:", err);
+      setError(err?.response?.data?.message || err?.message || "Failed to load classes");
     } finally {
       setLoading(false);
     }

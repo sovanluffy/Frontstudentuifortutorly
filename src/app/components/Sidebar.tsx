@@ -77,7 +77,7 @@ export const Sidebar = ({ isOpen }: { isOpen: boolean }) => {
   ];
   const studentItems: MenuItem[] = [
     { icon: <Home size={18} />, label: "Home", path: "/" },
-    { icon: <BookOpen size={18} />, label: "My Tutors", path: "/student/my-tutor" },
+    { icon: <BookOpen size={18} />, label: "My Classes", path: "/student/my-classes" },
     { icon: <CalendarCheck size={18} />, label: "My Bookings", path: "/student/bookings" },
     { icon: <MessageCircle size={18} />, label: "Messages", path: "/messages", badge: unreadChats },
   ];
