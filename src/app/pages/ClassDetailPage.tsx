@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/app/components/figma/ui/button";
 import BookingSidebar from "@/app/components/BookingSidebar";
+import { AuthModal } from "@/app/components/AuthModal";
 import { toast, Toaster } from "sonner";
 
 const API_BASE = "https://toturhub-dev.onrender.com/api/v1";
@@ -206,17 +207,16 @@ function DurationBanner({
 export default function ClassDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const token = getToken();
   const isLoggedIn = !!token;
 
-  // ── Redirect to login, saving current path so user returns after login ───────
+  // ── Auth Modal state (replaces navigate("/login")) ───────────────────────
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Opens auth modal instead of navigating away
   const redirectToLogin = () => {
-    navigate("/login", {
-      replace: true,
-      state: { from: location.pathname },
-    });
+    setShowAuthModal(true);
   };
 
   const [data, setData] = useState<ClassData | null>(null);
@@ -414,10 +414,11 @@ export default function ClassDetailPage() {
   // ── Enroll click ─────────────────────────────────────────────────────
   const handleEnrollClick = () => {
     if (!isLoggedIn) {
+      // Save selected schedule so user can resume after login
       if (selectedSchedule) {
         sessionStorage.setItem("pendingScheduleId", String(selectedSchedule));
       }
-      redirectToLogin();
+      redirectToLogin(); // opens AuthModal
       return;
     }
     if (!selectedSchedule) {
@@ -432,7 +433,7 @@ export default function ClassDetailPage() {
   // ── Write review click ───────────────────────────────────────────────
   const handleWriteReviewClick = () => {
     if (!isLoggedIn) {
-      redirectToLogin();
+      redirectToLogin(); // opens AuthModal
       return;
     }
     if (!hasConfirmedBooking) {
@@ -444,6 +445,24 @@ export default function ClassDetailPage() {
       return;
     }
     setShowReviewModal(true);
+  };
+
+  // ── Handle successful login from AuthModal ───────────────────────────
+  // After login, re-check token and close modal; bookings will re-fetch via useEffect
+  const handleAuthModalClose = () => {
+    setShowAuthModal(false);
+    // If user just logged in, the token is now in cookies.
+    // The bookings useEffect depends on `token` but token is read once on render.
+    // Force a reload of bookings if now logged in.
+    const newToken = getToken();
+    if (newToken) {
+      fetch(`${API_BASE}/bookings/me`, {
+        headers: { Authorization: `Bearer ${newToken}` },
+      })
+        .then((r) => r.json())
+        .then((json) => setMyBookings(Array.isArray(json) ? json : []))
+        .catch(() => {});
+    }
   };
 
   // ── Loading ──────────────────────────────────────────────────────────
@@ -466,6 +485,9 @@ export default function ClassDetailPage() {
   return (
     <div className="min-h-screen bg-[#FBFBFC] pb-10 text-slate-800 text-sm">
       <Toaster position="top-right" richColors />
+
+      {/* ── Auth Modal ── */}
+      <AuthModal isOpen={showAuthModal} onClose={handleAuthModalClose} />
 
       {/* ── Booking Success Overlay ── */}
       {bookingFinished && (
@@ -501,9 +523,10 @@ export default function ClassDetailPage() {
             <div className="px-4 py-1.5 bg-indigo-50 text-indigo-600 text-xs font-black uppercase tracking-widest rounded-full border border-indigo-100">
               {data.status}
             </div>
+            {/* Show Log In button in header only when not logged in */}
             {!isLoggedIn && (
               <button
-                onClick={redirectToLogin}
+                onClick={() => setShowAuthModal(true)}
                 className="px-4 py-1.5 bg-slate-900 hover:bg-indigo-600 text-white text-xs font-black uppercase tracking-widest rounded-full transition-colors"
               >
                 Log In
@@ -715,7 +738,7 @@ export default function ClassDetailPage() {
               {!isLoggedIn ? (
                 <>
                   <button
-                    onClick={redirectToLogin}
+                    onClick={() => setShowAuthModal(true)}
                     className="text-indigo-500 underline underline-offset-2 hover:text-indigo-700 font-semibold"
                   >
                     Log in
@@ -982,9 +1005,7 @@ export default function ClassDetailPage() {
                   className="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-700 placeholder-slate-300 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all leading-relaxed"
                 />
                 <div className="flex justify-between items-center mt-1.5">
-                  <span className="text-[10px] text-slate-400">
-                    Be honest and constructive
-                  </span>
+                  <span className="text-[10px] text-slate-400">Be honest and constructive</span>
                   <span
                     className={`text-[10px] font-bold tabular-nums ${
                       reviewComment.length >= 480

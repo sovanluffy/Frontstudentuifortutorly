@@ -105,13 +105,15 @@ export default function Home() {
   }, [showWelcome]);
 
   /* ── Fetch tutor public status ─────────────────────────────────────────
-     For each unique tutorId in a class list, call GET /tutors/:id (public
-     endpoint) and record whether their profile is public.
-     Classes whose tutor is private are hidden from every view.
+     Only runs when user is logged in (has token).
+     Guests skip this entirely — no 401 errors, all public classes visible.
   ───────────────────────────────────────────────────────────────────── */
   const fetchTutorPublicStatus = useCallback(
     async (classes: any[]) => {
       const token = getToken();
+
+      // ✅ Guest users: skip tutor privacy check entirely — no 401 calls
+      if (!token) return;
 
       // Collect tutorIds we haven't checked yet
       const unknownIds: number[] = [];
@@ -127,11 +129,11 @@ export default function Home() {
       // De-duplicate
       const uniqueIds = [...new Set(unknownIds)];
 
-      // Fetch all in parallel — use public tutor endpoint
+      // Fetch all in parallel — token always present at this point
       const results = await Promise.allSettled(
         uniqueIds.map((id) =>
           fetch(`${API_BASE}/tutors/${id}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            headers: { Authorization: `Bearer ${token}` },
           }).then((r) => (r.ok ? r.json() : null))
         )
       );
@@ -143,7 +145,7 @@ export default function Home() {
           // public field: true = visible, false or undefined = hidden
           updates[id] = result.value.public === true;
         } else {
-          // If we can't fetch the profile, default to hidden (safe)
+          // If we can't fetch the profile, default to hidden (safe for logged-in users)
           updates[id] = false;
         }
       });
@@ -170,7 +172,7 @@ export default function Home() {
         if (!res.ok) throw new Error("Failed");
         const data = await res.json();
         setPublicClasses(data);
-        // Kick off tutor-privacy checks
+        // Kick off tutor-privacy checks (only runs if logged in)
         fetchTutorPublicStatus(data);
       } catch (e) {
         console.error(e);
@@ -191,14 +193,19 @@ export default function Home() {
     const publicOnly = data.filter((c: any) => c.visibilityStatus === "PUBLIC");
     setSearchResults(publicOnly);
     setActiveMode("ALL");
-    // Also check tutor privacy for new search results
+    // Also check tutor privacy for new search results (only runs if logged in)
     fetchTutorPublicStatus(publicOnly);
   };
 
   /* ── isTutorVisible helper ──────────────────────────────────────────── */
   const isTutorVisible = (cls: any): boolean => {
+    const token = getToken();
+
+    // ✅ Guests: always show all classes — tutor privacy only applies to logged-in users
+    if (!token) return true;
+
     const tid = cls.tutor?.tutorId ?? cls.tutorId;
-    if (tid == null) return true; // no tutorId info — show it
+    if (tid == null) return true;
     // If we haven't resolved yet, show optimistically (will re-render once known)
     if (tutorPublicMap[tid] === undefined) return true;
     return tutorPublicMap[tid] === true;
@@ -209,7 +216,7 @@ export default function Home() {
     const src = searchResults !== null ? searchResults : publicClasses;
     return src
       .filter((c: any) => c.visibilityStatus === "PUBLIC")
-      .filter((c: any) => isTutorVisible(c))           // ← hide private-tutor classes
+      .filter((c: any) => isTutorVisible(c))
       .filter(
         (c: any) =>
           activeMode === "ALL" ||
