@@ -35,10 +35,8 @@ const validateEmail = (val: string): string => {
 const validatePhone = (val: string): string => {
   if (!val) return "Phone is required.";
   if (!/^\d+$/.test(val)) return "Phone must contain digits only.";
-  if (!["8", "9"].includes(val[0]))
-    return "Phone must start with 8 or 9.";
-  if (val.length < 9 || val.length > 10)
-    return "Phone must be 9–10 digits.";
+  if (val[0] !== "0") return "Phone must start with 0.";
+  if (val.length < 6 || val.length > 9) return "Phone must be 6–9 digits.";
   return "";
 };
 
