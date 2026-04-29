@@ -1,79 +1,38 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Button } from "@/app/components/figma/ui/button";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import React from "react";
+import { Globe, EyeOff } from "lucide-react";
 
 interface ProfilePublishProps {
   token: string | null;
   initialPublished: boolean;
-  onRefresh: () => void;
+  onRefresh: () => void; // parent handles ALL logic (guard + API call)
 }
 
 export default function ProfilePublish({
-  token,
   initialPublished,
   onRefresh,
 }: ProfilePublishProps) {
-  const [loading, setLoading] = useState(false);
-  const [isPublished, setIsPublished] = useState(initialPublished);
-
-  useEffect(() => {
-    setIsPublished(initialPublished);
-  }, [initialPublished]);
-
-  const handleTogglePublish = async () => {
-    if (!token) {
-      toast.error("Token not found");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const url = isPublished
-        ? "https://toturhub-dev.onrender.com/api/v1/tutors/unpublish"
-        : "https://toturhub-dev.onrender.com/api/v1/tutors/publish";
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          accept: "*/*",
-        },
-      });
-
-      if (res.ok) {
-        toast.success(isPublished ? "Profile unpublished" : "Profile published");
-        setIsPublished(!isPublished);
-        onRefresh(); // update parent
-      } else {
-        toast.error("Action failed");
-      }
-    } catch {
-      toast.error("Connection error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <Button
-      className={`flex-1 px-4 py-2 rounded-lg text-white font-semibold ${
-        isPublished
-          ? "bg-red-500 hover:bg-red-600"
-          : "bg-green-600 hover:bg-green-700"
+    <button
+      onClick={onRefresh}
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
+        initialPublished
+          ? "bg-red-50 hover:bg-red-100 text-red-600 border border-red-200"
+          : "bg-green-600 hover:bg-green-700 text-white"
       }`}
-      onClick={handleTogglePublish}
-      disabled={loading}
     >
-      {loading ? (
-        <Loader2 className="animate-spin mr-2 inline-block" size={16} />
-      ) : isPublished ? (
-        "Unpublish Profile"
+      {initialPublished ? (
+        <>
+          <EyeOff size={15} />
+          Unpublish
+        </>
       ) : (
-        "Publish Profile"
+        <>
+          <Globe size={15} />
+          Publish Profile
+        </>
       )}
-    </Button>
+    </button>
   );
 }

@@ -2,7 +2,8 @@
 import React, { useState, useMemo } from "react";
 import {
   Loader2, Edit3, Upload, Plus, Trash2, ChevronLeft,
-  Image as ImageIcon, Video as VideoIcon, User, BookOpen, Briefcase, Camera
+  Image as ImageIcon, Video as VideoIcon, User, BookOpen, Briefcase, Camera,
+  CheckCircle2, X
 } from "lucide-react";
 import { Button } from "@/app/components/figma/ui/button";
 import {
@@ -25,24 +26,59 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [updating, setUpdating] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
+  // ── Text fields ──
   const [bio, setBio] = useState(tutor?.bio || "");
   const [education, setEducation] = useState<any[]>(tutor?.education || []);
   const [experience, setExperience] = useState<any[]>(tutor?.experience || []);
 
+  // ── Media ──
   const [profileImg, setProfileImg] = useState<File | null>(null);
   const [coverImg, setCoverImg] = useState<File | null>(null);
+  const [coverRemoved, setCoverRemoved] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [certificates, setCertificates] = useState<File[]>([]);
   const [certPreviews, setCertPreviews] = useState<string[]>(tutor?.certificateImages || []);
 
-  const profilePreview = useMemo(() =>
-    profileImg ? URL.createObjectURL(profileImg) : tutor?.profilePicture, [profileImg, tutor]);
-  const coverPreview = useMemo(() =>
-    coverImg ? URL.createObjectURL(coverImg) : tutor?.coverImage, [coverImg, tutor]);
-  const videoPreview = useMemo(() =>
-    videoFile ? URL.createObjectURL(videoFile) : tutor?.introVideoUrl, [videoFile, tutor]);
+  // ── Computed previews ──
+  const profilePreview = useMemo(
+    () => (profileImg ? URL.createObjectURL(profileImg) : tutor?.profilePicture),
+    [profileImg, tutor]
+  );
+  const coverPreview = useMemo(() => {
+    if (coverRemoved) return null;
+    return coverImg ? URL.createObjectURL(coverImg) : tutor?.coverImage;
+  }, [coverImg, coverRemoved, tutor]);
+  const videoPreview = useMemo(
+    () => (videoFile ? URL.createObjectURL(videoFile) : tutor?.introVideoUrl),
+    [videoFile, tutor]
+  );
 
+  // ── Reset form to tutor defaults ──
+  const resetForm = () => {
+    setBio(tutor?.bio || "");
+    setEducation(tutor?.education || []);
+    setExperience(tutor?.experience || []);
+    setProfileImg(null);
+    setCoverImg(null);
+    setCoverRemoved(false);
+    setVideoFile(null);
+    setCertificates([]);
+    setCertPreviews(tutor?.certificateImages || []);
+    setStep(0);
+  };
+
+  // ── Handle dialog open/close ──
+  const handleOpenChange = (v: boolean) => {
+    setIsOpen(v);
+    if (!v) {
+      setShowSuccess(false);
+      resetForm();
+    }
+  };
+
+  // ── Submit ──
   const handleUpdate = async () => {
     setUpdating(true);
     try {
@@ -50,19 +86,47 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
       fd.append("data", JSON.stringify({ bio, education, experience }));
       if (profileImg) fd.append("profileImg", profileImg);
       if (coverImg) fd.append("coverImg", coverImg);
+      if (coverRemoved) fd.append("removeCover", "true");
       if (videoFile) fd.append("videoFile", videoFile);
       certificates.forEach(f => fd.append("certificates", f));
 
       const res = await fetch(
         `https://toturhub-dev.onrender.com/api/v1/tutors/profile?publish=false`,
-        { method: "PUT", headers: { Authorization: `Bearer ${token}`, accept: "*/*" }, body: fd }
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token}`, accept: "*/*" },
+          body: fd,
+        }
       );
-      if (res.ok) { toast.success("Profile updated!"); setIsOpen(false); onRefresh(); }
-      else toast.error("Update failed: " + await res.text());
-    } catch { toast.error("Connection error"); }
-    finally { setUpdating(false); }
+
+      if (res.ok) {
+        // Show inline success banner
+        setShowSuccess(true);
+        // Reset all file/dirty state (keep text for reference, user can re-edit)
+        setProfileImg(null);
+        setCoverImg(null);
+        setCoverRemoved(false);
+        setVideoFile(null);
+        setCertificates([]);
+        onRefresh();
+
+        // Auto-close after 2.5 s
+        setTimeout(() => {
+          setShowSuccess(false);
+          setIsOpen(false);
+          resetForm();
+        }, 2500);
+      } else {
+        toast.error("Update failed: " + (await res.text()));
+      }
+    } catch {
+      toast.error("Connection error");
+    } finally {
+      setUpdating(false);
+    }
   };
 
+  // ── Certificate helpers ──
   const addCerts = (files: FileList | null) => {
     if (!files) return;
     const arr = Array.from(files);
@@ -75,7 +139,7 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={v => { setIsOpen(v); if (!v) setStep(0); }}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg flex items-center gap-2 h-9">
           <Edit3 size={14} /> Edit profile
@@ -84,7 +148,37 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
 
       <DialogContent className="p-0 gap-0 rounded-2xl overflow-hidden w-full max-w-lg mx-auto border border-gray-200 shadow-xl">
         <DialogTitle className="sr-only">Edit Tutor Profile</DialogTitle>
-        <DialogDescription className="sr-only">Update your biography, education, experience, and media.</DialogDescription>
+        <DialogDescription className="sr-only">
+          Update your biography, education, experience, and media.
+        </DialogDescription>
+
+        {/* ── Success Banner ── */}
+        {showSuccess && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm rounded-2xl animate-in fade-in duration-300">
+            <div className="flex flex-col items-center gap-4 px-8 text-center">
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle2 size={36} className="text-green-500" />
+              </div>
+              <div>
+                <h3 className="text-[17px] font-bold text-gray-900 mb-1">Profile updated!</h3>
+                <p className="text-[13px] text-gray-500 leading-relaxed">
+                  Your changes have been saved successfully.<br />
+                  This window will close automatically.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowSuccess(false);
+                  setIsOpen(false);
+                  resetForm();
+                }}
+                className="mt-1 text-[13px] font-medium text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                Close now
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ── Modal Header ── */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-white">
@@ -145,7 +239,6 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
                     <Plus size={12} className="text-blue-600" />
                   </button>
                 </div>
-
                 {education.length === 0 ? (
                   <p className="text-[12px] text-gray-400 text-center py-4 italic">No education added yet.</p>
                 ) : (
@@ -159,8 +252,10 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
                             value={edu.school}
                             onChange={e => { const n = [...education]; n[i].school = e.target.value; setEducation(n); }}
                           />
-                          <button onClick={() => setEducation(education.filter((_, idx) => idx !== i))}
-                            className="text-red-400 hover:text-red-600 transition-colors p-1">
+                          <button
+                            onClick={() => setEducation(education.filter((_, idx) => idx !== i))}
+                            className="text-red-400 hover:text-red-600 transition-colors p-1"
+                          >
                             <Trash2 size={13} />
                           </button>
                         </div>
@@ -198,7 +293,6 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
                     <Plus size={12} className="text-gray-600" />
                   </button>
                 </div>
-
                 {experience.length === 0 ? (
                   <p className="text-[12px] text-gray-400 text-center py-4 italic">No experience added yet.</p>
                 ) : (
@@ -212,8 +306,10 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
                             value={exp.company}
                             onChange={e => { const n = [...experience]; n[i].company = e.target.value; setExperience(n); }}
                           />
-                          <button onClick={() => setExperience(experience.filter((_, idx) => idx !== i))}
-                            className="text-red-400 hover:text-red-600 transition-colors p-1">
+                          <button
+                            onClick={() => setExperience(experience.filter((_, idx) => idx !== i))}
+                            className="text-red-400 hover:text-red-600 transition-colors p-1"
+                          >
                             <Trash2 size={13} />
                           </button>
                         </div>
@@ -250,44 +346,72 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Photos</span>
                 </div>
                 <div className="p-3 grid grid-cols-2 gap-3">
+
                   {/* Profile photo */}
                   <div className="space-y-1">
                     <p className="text-[11px] text-gray-400 font-medium">Profile photo</p>
                     <label className="relative group block aspect-square rounded-xl overflow-hidden border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer hover:border-blue-400 transition-colors">
-                      {profilePreview
-                        ? <img src={profilePreview} className="w-full h-full object-cover" alt="profile" />
-                        : <div className="flex flex-col items-center justify-center h-full gap-1.5">
-                            <Upload size={18} className="text-gray-300" />
-                            <span className="text-[11px] text-gray-400">Upload</span>
-                          </div>
-                      }
+                      {profilePreview ? (
+                        <img src={profilePreview} className="w-full h-full object-cover" alt="profile" />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full gap-1.5">
+                          <Upload size={18} className="text-gray-300" />
+                          <span className="text-[11px] text-gray-400">Upload</span>
+                        </div>
+                      )}
                       {profilePreview && (
                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                           <Upload size={16} className="text-white" />
                         </div>
                       )}
-                      <input type="file" accept="image/*" className="hidden"
-                        onChange={e => setProfileImg(e.target.files?.[0] || null)} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={e => setProfileImg(e.target.files?.[0] || null)}
+                      />
                     </label>
                   </div>
+
                   {/* Cover photo */}
                   <div className="space-y-1">
-                    <p className="text-[11px] text-gray-400 font-medium">Cover photo</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] text-gray-400 font-medium">Cover photo</p>
+                      {coverPreview && (
+                        <button
+                          type="button"
+                          onClick={() => { setCoverImg(null); setCoverRemoved(true); }}
+                          className="flex items-center gap-1 text-[10px] font-medium text-red-400 hover:text-red-600 transition-colors"
+                          title="Remove cover image"
+                        >
+                          <X size={11} />
+                          Remove
+                        </button>
+                      )}
+                    </div>
                     <label className="relative group block aspect-square rounded-xl overflow-hidden border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer hover:border-blue-400 transition-colors">
-                      {coverPreview
-                        ? <img src={coverPreview} className="w-full h-full object-cover" alt="cover" />
-                        : <div className="flex flex-col items-center justify-center h-full gap-1.5">
-                            <Upload size={18} className="text-gray-300" />
-                            <span className="text-[11px] text-gray-400">Upload</span>
-                          </div>
-                      }
+                      {coverPreview ? (
+                        <img src={coverPreview} className="w-full h-full object-cover" alt="cover" />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full gap-1.5">
+                          <Upload size={18} className="text-gray-300" />
+                          <span className="text-[11px] text-gray-400">Upload</span>
+                        </div>
+                      )}
                       {coverPreview && (
                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                           <Upload size={16} className="text-white" />
                         </div>
                       )}
-                      <input type="file" accept="image/*" className="hidden"
-                        onChange={e => setCoverImg(e.target.files?.[0] || null)} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={e => {
+                          setCoverRemoved(false);
+                          setCoverImg(e.target.files?.[0] || null);
+                        }}
+                      />
                     </label>
                   </div>
                 </div>
@@ -301,18 +425,28 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
                 </div>
                 <div className="p-3">
                   <label className="relative group block rounded-xl overflow-hidden bg-gray-900 aspect-video cursor-pointer">
-                    {videoPreview
-                      ? <video src={videoPreview} className="w-full h-full object-cover" controls onClick={e => e.stopPropagation()} />
-                      : <div className="flex flex-col items-center justify-center h-full gap-2">
-                          <VideoIcon size={22} className="text-gray-500" />
-                          <span className="text-[12px] text-gray-500">Click to upload video</span>
-                        </div>
-                    }
+                    {videoPreview ? (
+                      <video
+                        src={videoPreview}
+                        className="w-full h-full object-cover"
+                        controls
+                        onClick={e => e.stopPropagation()}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full gap-2">
+                        <VideoIcon size={22} className="text-gray-500" />
+                        <span className="text-[12px] text-gray-500">Click to upload video</span>
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                       <Upload size={18} className="text-white" />
                     </div>
-                    <input type="file" accept="video/*" className="hidden"
-                      onChange={e => setVideoFile(e.target.files?.[0] || null)} />
+                    <input
+                      type="file"
+                      accept="video/*"
+                      className="hidden"
+                      onChange={e => setVideoFile(e.target.files?.[0] || null)}
+                    />
                   </label>
                 </div>
               </div>
@@ -329,7 +463,10 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
                 <div className="p-3">
                   <div className="flex flex-wrap gap-2">
                     {certPreviews.map((url, i) => (
-                      <div key={i} className="relative w-[72px] h-[72px] rounded-lg overflow-hidden border border-gray-200 group">
+                      <div
+                        key={i}
+                        className="relative w-[72px] h-[72px] rounded-lg overflow-hidden border border-gray-200 group"
+                      >
                         <img src={url} className="w-full h-full object-cover" alt={`cert-${i}`} />
                         <button
                           onClick={() => removeCert(i)}
@@ -342,8 +479,13 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
                     <label className="w-[72px] h-[72px] flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors gap-1">
                       <Plus size={16} className="text-gray-400" />
                       <span className="text-[10px] text-gray-400">Add</span>
-                      <input type="file" multiple accept="image/*" className="hidden"
-                        onChange={e => addCerts(e.target.files)} />
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        onChange={e => addCerts(e.target.files)}
+                      />
                     </label>
                   </div>
                 </div>
@@ -365,7 +507,7 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
           )}
           <div className="flex-1" />
           <button
-            onClick={() => setIsOpen(false)}
+            onClick={() => handleOpenChange(false)}
             className="text-[13px] font-medium text-gray-500 hover:text-gray-800 transition-colors px-3 py-1.5"
           >
             Cancel
@@ -379,7 +521,7 @@ export default function PortfolioEditor({ tutor, token, onRefresh }: PortfolioEd
                 : "bg-green-600 hover:bg-green-700"
             } disabled:opacity-60`}
           >
-            {updating ? <Loader2 size={13} className="animate-spin" /> : null}
+            {updating && <Loader2 size={13} className="animate-spin" />}
             {step === 0 ? "Next" : "Save changes"}
           </button>
         </div>

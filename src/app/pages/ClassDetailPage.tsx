@@ -239,6 +239,13 @@ export default function ClassDetailPage() {
   const [tutorReviews, setTutorReviews] = useState<Review[]>([]);
   const [tutorReviewsLoading, setTutorReviewsLoading] = useState(false);
 
+  // ── Review Modal State ───────────────────────────────────────────────
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [hoveredRating, setHoveredRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+
   // ── Fetch class — PUBLIC, no token needed ────────────────────────────
   useEffect(() => {
     const fetchClass = async () => {
@@ -292,6 +299,15 @@ export default function ClassDetailPage() {
       .then((json) => setTutorReviews(json?.reviews || []))
       .catch(() => {})
       .finally(() => setTutorReviewsLoading(false));
+  };
+
+  // ── Refresh class reviews helper ─────────────────────────────────────
+  const refreshReviews = () => {
+    if (!data?.classId) return;
+    fetch(`${API_BASE}/reviews/class/${data.classId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => setReviews(json?.reviews || []))
+      .catch(() => {});
   };
 
   // ── Derived state ────────────────────────────────────────────────────
@@ -354,13 +370,50 @@ export default function ClassDetailPage() {
     }
   };
 
+  // ── Review submit ────────────────────────────────────────────────────
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewRating) {
+      toast.warning("Please select a rating");
+      return;
+    }
+    if (!reviewComment.trim()) {
+      toast.warning("Please write a comment");
+      return;
+    }
+
+    const toastId = toast.loading("Submitting your review...");
+    setSubmittingReview(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/reviews/class/${data?.classId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ rating: reviewRating, comment: reviewComment }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to submit review");
+
+      toast.success("Review submitted successfully!", { id: toastId });
+      setShowReviewModal(false);
+      setReviewRating(0);
+      setHoveredRating(0);
+      setReviewComment("");
+      refreshReviews();
+    } catch (err: any) {
+      toast.error(err.message, { id: toastId });
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   // ── Enroll click ─────────────────────────────────────────────────────
-  // Not logged in → auto redirect to login (with return path)
-  // Logged in but no session selected → warning
-  // Logged in + session selected → open booking sidebar
   const handleEnrollClick = () => {
     if (!isLoggedIn) {
-      // Save chosen schedule so we can restore it after login if needed
       if (selectedSchedule) {
         sessionStorage.setItem("pendingScheduleId", String(selectedSchedule));
       }
@@ -377,9 +430,6 @@ export default function ClassDetailPage() {
   };
 
   // ── Write review click ───────────────────────────────────────────────
-  // Not logged in → auto redirect to login
-  // Logged in but no confirmed booking → access denied toast
-  // Logged in + confirmed booking → open review form
   const handleWriteReviewClick = () => {
     if (!isLoggedIn) {
       redirectToLogin();
@@ -393,8 +443,7 @@ export default function ClassDetailPage() {
       });
       return;
     }
-    // TODO: open review form
-    toast.success("Opening review form...");
+    setShowReviewModal(true);
   };
 
   // ── Loading ──────────────────────────────────────────────────────────
@@ -411,6 +460,8 @@ export default function ClassDetailPage() {
 
   const confirmedStudents = data.confirmedStudents || [];
   const tutorRating = formatRating(data.tutor.rating || 0);
+
+  const ratingLabels = ["", "Poor", "Fair", "Good", "Great", "Excellent"];
 
   return (
     <div className="min-h-screen bg-[#FBFBFC] pb-10 text-slate-800 text-sm">
@@ -450,7 +501,6 @@ export default function ClassDetailPage() {
             <div className="px-4 py-1.5 bg-indigo-50 text-indigo-600 text-xs font-black uppercase tracking-widest rounded-full border border-indigo-100">
               {data.status}
             </div>
-            {/* Show login button in header when guest */}
             {!isLoggedIn && (
               <button
                 onClick={redirectToLogin}
@@ -627,7 +677,7 @@ export default function ClassDetailPage() {
             </div>
           </div>
 
-          {/* ── Reviews — ALWAYS VISIBLE to everyone ── */}
+          {/* ── Reviews Section ── */}
           <div className="bg-white rounded-3xl border border-slate-200/60 p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
@@ -640,7 +690,7 @@ export default function ClassDetailPage() {
               </div>
             </div>
 
-            {/* Write Review Button — adapts to auth state */}
+            {/* Write Review Button */}
             <button
               onClick={handleWriteReviewClick}
               className={`w-full mb-2 py-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-black tracking-widest uppercase transition-all ${
@@ -677,7 +727,7 @@ export default function ClassDetailPage() {
               ) : null}
             </p>
 
-            {/* Review list — always rendered */}
+            {/* Review list */}
             {reviewsLoading ? (
               <div className="py-8 flex justify-center">
                 <Loader2 className="animate-spin text-indigo-500" />
@@ -774,7 +824,7 @@ export default function ClassDetailPage() {
               </p>
             </div>
 
-            {/* Active students — visible to everyone */}
+            {/* Active students */}
             <div className="mt-6 pt-5 border-t border-slate-50">
               <h4 className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest flex items-center gap-2">
                 <UserCheck size={14} className="text-emerald-500" /> Active Students ({confirmedStudents.length})
@@ -848,6 +898,134 @@ export default function ClassDetailPage() {
                 </p>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Write Review Modal ── */}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in duration-200 overflow-hidden">
+
+            {/* Modal Header */}
+            <div className="p-5 border-b flex justify-between items-center bg-slate-900 text-white">
+              <div>
+                <h3 className="font-black text-base uppercase tracking-tight">Write a Review</h3>
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-0.5 truncate max-w-[220px]">
+                  {data?.title}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowReviewModal(false);
+                  setReviewRating(0);
+                  setHoveredRating(0);
+                  setReviewComment("");
+                }}
+                className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-colors flex-shrink-0"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleSubmitReview} className="p-6 space-y-6">
+
+              {/* Star Rating Picker */}
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block mb-3">
+                  Your Rating <span className="text-red-400">*</span>
+                </label>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const value = i + 1;
+                    const isActive = value <= (hoveredRating || reviewRating);
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setReviewRating(value)}
+                        onMouseEnter={() => setHoveredRating(value)}
+                        onMouseLeave={() => setHoveredRating(0)}
+                        className="transition-transform hover:scale-125 active:scale-95 p-0.5"
+                      >
+                        <Star
+                          size={34}
+                          className="transition-all duration-150"
+                          fill={isActive ? "#f59e0b" : "none"}
+                          stroke={isActive ? "#f59e0b" : "#cbd5e1"}
+                          strokeWidth={1.5}
+                        />
+                      </button>
+                    );
+                  })}
+                  {(hoveredRating || reviewRating) > 0 && (
+                    <span className="ml-2 text-sm font-bold text-amber-500 transition-all">
+                      {ratingLabels[hoveredRating || reviewRating]}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Comment Textarea */}
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block mb-2">
+                  Your Comment <span className="text-red-400">*</span>
+                </label>
+                <textarea
+                  value={reviewComment}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 500) setReviewComment(e.target.value);
+                  }}
+                  placeholder="Share your experience with this class — what did you learn? How was the tutor?"
+                  rows={4}
+                  className="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-700 placeholder-slate-300 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all leading-relaxed"
+                />
+                <div className="flex justify-between items-center mt-1.5">
+                  <span className="text-[10px] text-slate-400">
+                    Be honest and constructive
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold tabular-nums ${
+                      reviewComment.length >= 480
+                        ? "text-red-400"
+                        : reviewComment.length >= 300
+                        ? "text-amber-500"
+                        : "text-slate-400"
+                    }`}
+                  >
+                    {reviewComment.length}/500
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowReviewModal(false);
+                    setReviewRating(0);
+                    setHoveredRating(0);
+                    setReviewComment("");
+                  }}
+                  className="flex-1 py-3.5 rounded-2xl border-2 border-slate-200 text-slate-600 text-xs font-black uppercase tracking-widest hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingReview || !reviewRating || !reviewComment.trim()}
+                  className="flex-1 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-100 disabled:text-slate-400 text-white text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed hover:-translate-y-0.5 active:scale-95 shadow-lg shadow-emerald-100 disabled:shadow-none"
+                >
+                  {submittingReview ? (
+                    <Loader2 className="animate-spin" size={16} />
+                  ) : (
+                    <><PenLine size={14} /> Submit Review</>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
